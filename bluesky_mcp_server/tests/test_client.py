@@ -12,7 +12,7 @@ url = "http://localhost:8000/api/v1/tools"
 try:
     # Try to get a list of available tools
     response = requests.get(url)
-    
+
     if response.status_code == 200:
         print("Server is responding!")
         data = response.json()

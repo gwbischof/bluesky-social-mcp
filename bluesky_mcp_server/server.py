@@ -53,35 +53,40 @@ mcp = FastMCP(
 )
 
 # Type variable for function return types
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 def require_auth(func: F) -> F:
     """Decorator to require authentication for a tool.
-    
+
     If not authenticated, attempts to authenticate using environment variables.
-    
+
     Args:
         func: The function to decorate
-        
+
     Returns:
         Decorated function
     """
+
     @functools.wraps(func)
     def wrapper(ctx: Context, *args, **kwargs):
         auth_manager = ctx.request_context.lifespan_context.auth_manager
-        
+
         # Check if already authenticated
         if not auth_manager.is_authenticated(ctx):
             # Try to authenticate using environment variables
             success, error = auth_manager.authenticate_from_env(ctx)
-            
+
             # If environment authentication failed, return error
             if not success:
-                return {"status": "error", "message": f"Authentication required. {error}"}
-        
+                return {
+                    "status": "error",
+                    "message": f"Authentication required. {error}",
+                }
+
         # Now call the original function
         return func(ctx, *args, **kwargs)
-    
+
     return wrapper
 
 
@@ -98,31 +103,35 @@ def check_environment_variables(ctx: Context) -> dict:
     handle = os.environ.get("BLUESKY_IDENTIFIER")
     password = os.environ.get("BLUESKY_APP_PASSWORD")
     service_url = os.environ.get("BLUESKY_SERVICE_URL")
-    
+
     status = {
         "BLUESKY_IDENTIFIER": "✅ Set" if handle else "❌ Not set",
         "BLUESKY_APP_PASSWORD": "✅ Set" if password else "❌ Not set",
-        "BLUESKY_SERVICE_URL": f"✅ Set to {service_url}" if service_url else "⚠️ Not set (will default to https://bsky.social)"
+        "BLUESKY_SERVICE_URL": (
+            f"✅ Set to {service_url}"
+            if service_url
+            else "⚠️ Not set (will default to https://bsky.social)"
+        ),
     }
-    
+
     if handle and password:
         return {
-            "status": "success", 
+            "status": "success",
             "message": "Required environment variables are correctly set",
-            "variables": status
+            "variables": status,
         }
     else:
         return {
-            "status": "error", 
+            "status": "error",
             "message": "Missing required environment variables",
-            "variables": status
+            "variables": status,
         }
 
 
 @mcp.tool()
 def check_auth_status(ctx: Context) -> dict:
     """Check if the current session is authenticated.
-    
+
     Authentication happens automatically using environment variables:
     - BLUESKY_IDENTIFIER: Required - your Bluesky handle
     - BLUESKY_APP_PASSWORD: Required - your app password
@@ -149,16 +158,16 @@ def check_auth_status(ctx: Context) -> dict:
         handle = os.environ.get("BLUESKY_IDENTIFIER")
         password = os.environ.get("BLUESKY_APP_PASSWORD")
         service_url = os.environ.get("BLUESKY_SERVICE_URL", "https://bsky.social")
-        
+
         if handle and password:
             return {
                 "status": "not_authenticated",
-                "message": f"Environment variables are set but authentication hasn't happened yet. Will connect to {service_url} when you use any tool."
+                "message": f"Environment variables are set but authentication hasn't happened yet. Will connect to {service_url} when you use any tool.",
             }
         else:
             return {
                 "status": "not_authenticated",
-                "message": "Required environment variables BLUESKY_IDENTIFIER and/or BLUESKY_APP_PASSWORD are not set."
+                "message": "Required environment variables BLUESKY_IDENTIFIER and/or BLUESKY_APP_PASSWORD are not set.",
             }
 
 
@@ -495,7 +504,7 @@ def like_post(
             "status": "success",
             "message": "Post liked successfully",
             "like_uri": like_response.uri,
-            "like_cid": like_response.cid
+            "like_cid": like_response.cid,
         }
     except Exception as e:
         error_msg = f"Failed to like post: {str(e)}"
@@ -560,10 +569,7 @@ def create_post(
                     img_bytes = BytesIO(base64.b64decode(img_data["image_data"]))
                     upload = client.upload_blob(img_bytes.read())
 
-                    image_uploads.append({
-                        "image": upload.blob,
-                        "alt": img_data["alt"]
-                    })
+                    image_uploads.append({"image": upload.blob, "alt": img_data["alt"]})
 
             if image_uploads:
                 post_params["images"] = image_uploads  # type: ignore
@@ -580,7 +586,7 @@ def create_post(
             "status": "success",
             "message": "Post created successfully",
             "post_uri": post_response.uri,
-            "post_cid": post_response.cid
+            "post_cid": post_response.cid,
         }
     except Exception as e:
         error_msg = f"Failed to create post: {str(e)}"
@@ -617,7 +623,7 @@ def follow_user(
         return {
             "status": "success",
             "message": f"Now following {handle}",
-            "follow_uri": follow_response.uri
+            "follow_uri": follow_response.uri,
         }
     except Exception as e:
         error_msg = f"Failed to follow user: {str(e)}"
@@ -651,10 +657,7 @@ def search_posts(
     client = auth_manager.get_client(ctx)
 
     try:
-        params = {
-            "q": query,
-            "limit": max(1, min(100, limit))
-        }
+        params = {"q": query, "limit": max(1, min(100, limit))}
         if cursor:
             params["cursor"] = cursor
 
@@ -695,10 +698,7 @@ def search_people(
     client = auth_manager.get_client(ctx)
 
     try:
-        params = {
-            "term": query,
-            "limit": max(1, min(100, limit))
-        }
+        params = {"term": query, "limit": max(1, min(100, limit))}
         if cursor:
             params["cursor"] = cursor
 
@@ -735,10 +735,7 @@ def search_feeds(
     client = auth_manager.get_client(ctx)
 
     try:
-        params = {
-            "query": query,
-            "limit": max(1, min(100, limit))
-        }
+        params = {"query": query, "limit": max(1, min(100, limit))}
         if cursor:
             params["cursor"] = cursor
 
@@ -778,7 +775,7 @@ def get_post_thread(
         params = {
             "uri": uri,
             "depth": max(0, min(1000, depth)),
-            "parentHeight": max(0, min(1000, parent_height))
+            "parentHeight": max(0, min(1000, parent_height)),
         }
 
         thread_response = client.app.bsky.feed.get_post_thread(params)
@@ -807,7 +804,7 @@ def convert_url_to_uri(
     try:
         # Extract the key components from the URL
         # Handle post URLs
-        post_pattern = r'https?://(?:www\.)?bsky\.app/profile/([^/]+)/post/([^/]+)'
+        post_pattern = r"https?://(?:www\.)?bsky\.app/profile/([^/]+)/post/([^/]+)"
         post_match = re.match(post_pattern, url)
 
         if post_match:
@@ -833,7 +830,7 @@ def convert_url_to_uri(
             return {"status": "success", "uri": at_uri}
 
         # Handle profile URLs
-        profile_pattern = r'https?://(?:www\.)?bsky\.app/profile/([^/]+)'
+        profile_pattern = r"https?://(?:www\.)?bsky\.app/profile/([^/]+)"
         profile_match = re.match(profile_pattern, url)
 
         if profile_match:
@@ -897,7 +894,7 @@ def get_trends(
                     # Extract hashtags with regex
                     text = record["text"]
                     if isinstance(text, str):
-                        tags = re.findall(r'#(\w+)', text)
+                        tags = re.findall(r"#(\w+)", text)
                         for tag in tags:
                             tag_lower = tag.lower()
                             if tag_lower in hashtags:
@@ -906,12 +903,14 @@ def get_trends(
                                 hashtags[tag_lower] = 1
 
         # Sort by count
-        sorted_tags = [{"tag": tag, "count": count} for tag, count in
-                      sorted(hashtags.items(), key=lambda x: x[1], reverse=True)]
+        sorted_tags = [
+            {"tag": tag, "count": count}
+            for tag, count in sorted(hashtags.items(), key=lambda x: x[1], reverse=True)
+        ]
 
         return {
             "status": "success",
-            "trends": sorted_tags[:20]  # Return top 20 trending tags
+            "trends": sorted_tags[:20],  # Return top 20 trending tags
         }
     except Exception as e:
         error_msg = f"Failed to get trends: {str(e)}"
@@ -954,7 +953,9 @@ def get_pinned_feeds(
             for feed_uri in pinned_feeds:
                 try:
                     # Extract the feed generator DID and feed name
-                    feed_match = re.match(r'at://([^/]+)/app\.bsky\.feed\.generator/([^/]+)', feed_uri)
+                    feed_match = re.match(
+                        r"at://([^/]+)/app\.bsky\.feed\.generator/([^/]+)", feed_uri
+                    )
 
                     if feed_match:
                         # Extract feed components (captured but not used directly)
@@ -965,23 +966,19 @@ def get_pinned_feeds(
                         _ = feed_did, feed_id  # Mark as used to satisfy linters
 
                         # Get feed info
-                        feed_info = client.app.bsky.feed.get_feed_generator({
-                            "feed": feed_uri
-                        })
+                        feed_info = client.app.bsky.feed.get_feed_generator(
+                            {"feed": feed_uri}
+                        )
 
-                        feed_details.append({
-                            "uri": feed_uri,
-                            "info": feed_info.dict()
-                        })
+                        feed_details.append({"uri": feed_uri, "info": feed_info.dict()})
                 except Exception as feed_err:
                     # Skip failed feeds
-                    ctx.error(f"Failed to get feed details for {feed_uri}: {str(feed_err)}")
+                    ctx.error(
+                        f"Failed to get feed details for {feed_uri}: {str(feed_err)}"
+                    )
                     continue
 
-        return {
-            "status": "success",
-            "pinned_feeds": feed_details
-        }
+        return {"status": "success", "pinned_feeds": feed_details}
     except Exception as e:
         error_msg = f"Failed to get pinned feeds: {str(e)}"
         ctx.error(error_msg)

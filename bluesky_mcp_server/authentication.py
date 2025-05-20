@@ -13,32 +13,39 @@ class BlueskyAuthManager:
     def __init__(self):
         """Initialize the auth manager."""
         self._clients = {}  # Map session IDs to authenticated clients
-    
+
     def authenticate_from_env(self, ctx: Context) -> Tuple[bool, Optional[str]]:
         """Authenticate with Bluesky using environment variables.
-        
+
         Looks for:
         - BLUESKY_IDENTIFIER: The handle (username)
         - BLUESKY_APP_PASSWORD: The app password
         - BLUESKY_SERVICE_URL: The service URL (defaults to "https://bsky.social")
-        
+
         Args:
             ctx: MCP context
-            
+
         Returns:
             Tuple of success boolean and error message if any
         """
         handle = os.environ.get("BLUESKY_IDENTIFIER")
         password = os.environ.get("BLUESKY_APP_PASSWORD")
         service_url = os.environ.get("BLUESKY_SERVICE_URL", "https://bsky.social")
-        
+
         if not handle or not password:
-            return False, "BLUESKY_IDENTIFIER and/or BLUESKY_APP_PASSWORD environment variables not set"
-            
+            return (
+                False,
+                "BLUESKY_IDENTIFIER and/or BLUESKY_APP_PASSWORD environment variables not set",
+            )
+
         return self.authenticate(handle, password, ctx, service_url)
 
     def authenticate(
-        self, handle: str, password: str, ctx: Context, service_url: str = "https://bsky.social"
+        self,
+        handle: str,
+        password: str,
+        ctx: Context,
+        service_url: str = "https://bsky.social",
     ) -> Tuple[bool, Optional[str]]:
         """Authenticate with Bluesky.
 
