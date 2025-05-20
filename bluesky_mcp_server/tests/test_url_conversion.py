@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from atproto import Client
-from bluesky_mcp_server.tools import convert_url_to_uri
+from bluesky_mcp_server.server import convert_url_to_uri
 
 
 class TestUrlConversion(unittest.TestCase):

@@ -56,6 +56,8 @@ This MCP server provides tools for all major Bluesky API operations including:
    ```
    uv run python -m bluesky_mcp_server.server
    ```
+   
+   Note: The server requires Python 3.12 or higher as specified in pyproject.toml.
 
 ## Usage
 
