@@ -57,12 +57,6 @@ This MCP server provides tools for all major Bluesky API operations including:
    uv sync
    ```
 
-   Or if starting fresh:
-   ```bash
-   uv add atproto mcp[cli] requests
-   uv add --dev black mypy pytest ruff
-   ```
-
 3. Run the server:
    ```bash
    uv run python server.py
@@ -72,23 +66,6 @@ This MCP server provides tools for all major Bluesky API operations including:
    ```bash
    uv run python -m server
    ```
-
-## Authentication
-
-This MCP server uses environment variables for authentication. Before using any tool that requires authentication, set the following environment variables:
-
-Required:
-```bash
-export BLUESKY_IDENTIFIER=yourusername.bsky.social
-export BLUESKY_APP_PASSWORD=your-app-password
-```
-
-Optional:
-```bash
-export BLUESKY_SERVICE_URL=https://bsky.social  # Default value, change if using a different instance
-```
-
-Authentication happens automatically when you use any tool that requires it. No explicit login command is needed.
 
 ## Using with Claude
 
@@ -107,37 +84,24 @@ The server supports two communication modes:
 
 ### Installation in Claude
 
-1. Install the MCP server in Claude:
+1. Install the MCP server in Claude through CLI:
    ```bash
-   mcp install /path/to/server.py
+   mcp install server.py -v BLUESKY_IDENTIFIER=yourusername.bsky.social -v BLUESKY_APP_PASSWORD=your-app-password
    ```
 
-2. Set environment variables in your Claude environment:
-   ```bash
-   export BLUESKY_IDENTIFIER=yourusername.bsky.social
-   export BLUESKY_APP_PASSWORD=your-app-password
-   ```
-
-3. Access tools in Claude using the `/tool` command with the appropriate tool name.
-
-## Development
-
-### Running Tests
+2. Or update your claude config file.
 ```bash
-uv run pytest
-```
-
-### Code Formatting
-```bash
-uv run black .
-```
-
-### Linting
-```bash
-uv run ruff check .
-```
-
-### Type Checking
-```bash
-uv run mypy .
+{
+    "mcpServers": {
+        "weather": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "/ABSOLUTE/PATH/TO/PARENT/FOLDER/weather",
+                "run",
+                "weather.py"
+            ]
+        }
+    }
+}
 ```
