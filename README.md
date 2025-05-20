@@ -46,18 +46,12 @@ This MCP server provides tools for all major Bluesky API operations including:
 
 ### Setup
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/bluesky-social-mcp.git
-   cd bluesky-social-mcp
-   ```
-
-2. Install dependencies:
+1. Install dependencies:
    ```bash
    uv sync
    ```
 
-3. Run the server:
+2. Run the server:
    ```bash
    uv run python server.py
    ```
@@ -86,20 +80,20 @@ The server supports two communication modes:
 
 1. Install the MCP server in Claude through CLI:
    ```bash
-   mcp install server.py -v BLUESKY_IDENTIFIER=yourusername.bsky.social -v BLUESKY_APP_PASSWORD=your-app-password
+   uv run mcp install server.py -v BLUESKY_IDENTIFIER=yourusername.bsky.social -v BLUESKY_APP_PASSWORD=your-app-password
    ```
 
-2. Or update your claude config file.
+2. Or update your mcp server config file like this:
 ```bash
 {
     "mcpServers": {
-        "weather": {
+        "bluesky-social": {
             "command": "uv",
             "args": [
                 "--directory",
-                "/ABSOLUTE/PATH/TO/PARENT/FOLDER/weather",
+                "/ABSOLUTE/PATH/TO/PARENT/FOLDER/bluesky-social-mcp",
                 "run",
-                "weather.py"
+                "server.py"
             ]
         }
     }
