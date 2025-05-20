@@ -63,14 +63,14 @@ This MCP server provides tools for all major Bluesky API operations including:
    uv add --dev black mypy pytest ruff
    ```
 
-3. Run the server directly:
+3. Run the server:
    ```bash
    uv run python bluesky_mcp_server/server.py
    ```
-
-4. Alternatively, use the run script:
+   
+   Or as a module:
    ```bash
-   uv run python run_server.py
+   uv run python -m bluesky_mcp_server.server
    ```
 
 ## Authentication
