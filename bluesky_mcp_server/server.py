@@ -10,9 +10,11 @@ import functools
 import re
 from io import BytesIO
 import os
+import asyncio
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, TypeVar, Union
 
 from atproto import Client
+import mcp.server.stdio
 from mcp.server.fastmcp import Context, FastMCP
 
 from .authentication import BlueskyAuthManager
@@ -985,5 +987,20 @@ def get_pinned_feeds(
         return {"status": "error", "message": error_msg}
 
 
+# Support for running as a stdio server
+async def run_stdio_server():
+    """Run the server with stdio communication."""
+    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+        await mcp.serve_stdio(read_stream, write_stream)
+
+
+# Main entry point
 if __name__ == "__main__":
-    mcp.run()
+    # Support both HTTP and stdio
+    # If run directly, we check if stdin is a TTY
+    if os.isatty(0):
+        # Run as HTTP server if stdin is a TTY
+        mcp.run()
+    else:
+        # Run as stdio server if stdin is not a TTY (piped)
+        asyncio.run(run_stdio_server())
