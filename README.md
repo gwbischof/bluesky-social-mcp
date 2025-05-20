@@ -118,37 +118,7 @@ The server supports two communication modes:
    export BLUESKY_APP_PASSWORD=your-app-password
    ```
 
-3. Access tools in Claude using the `/tool` command:
-   ```
-   /tool check_auth_status
-   ```
-
-### Example Usage in Claude
-
-#### Check Authentication
-```
-/tool check_auth_status
-```
-
-#### View Your Timeline
-```
-/tool get_timeline_posts
-```
-
-#### Get User Profile
-```
-/tool get_profile handle=claude.ai
-```
-
-#### Search for Posts
-```
-/tool search_posts query="artificial intelligence" limit=10 sort="latest"
-```
-
-#### Create a Post
-```
-/tool create_post text="Hello from Claude via Bluesky MCP!"
-```
+3. Access tools in Claude using the `/tool` command with the appropriate tool name.
 
 ## Development
 
