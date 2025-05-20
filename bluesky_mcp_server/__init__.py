@@ -1,1 +1,0 @@
-"""Bluesky MCP Server package."""

@@ -65,12 +65,12 @@ This MCP server provides tools for all major Bluesky API operations including:
 
 3. Run the server:
    ```bash
-   uv run python bluesky_mcp_server/server.py
+   uv run python server.py
    ```
 
    Or as a module:
    ```bash
-   uv run python -m bluesky_mcp_server.server
+   uv run python -m server
    ```
 
 ## Authentication
@@ -109,7 +109,7 @@ The server supports two communication modes:
 
 1. Install the MCP server in Claude:
    ```bash
-   mcp install /path/to/bluesky_mcp_server/server.py
+   mcp install /path/to/server.py
    ```
 
 2. Set environment variables in your Claude environment:
