@@ -56,7 +56,7 @@ This MCP server provides tools for all major Bluesky API operations including:
    ```bash
    uv sync
    ```
-   
+
    Or if starting fresh:
    ```bash
    uv add atproto mcp[cli] requests
@@ -67,7 +67,7 @@ This MCP server provides tools for all major Bluesky API operations including:
    ```bash
    uv run python bluesky_mcp_server/server.py
    ```
-   
+
    Or as a module:
    ```bash
    uv run python -m bluesky_mcp_server.server
@@ -99,47 +99,6 @@ Authentication happens automatically when you use any tool that requires it. No 
    mcp install /path/to/bluesky_mcp_server/server.py
    ```
 
-2. Set the environment variables as described in the Authentication section.
-
-3. In Claude, you can now access Bluesky tools via the `/tool` slash command.
-
-### Examples
-
-#### Check Authentication
-```
-/tool check_auth_status
-```
-
-#### View Your Timeline
-```
-/tool get_timeline_posts
-```
-
-#### Get User Profile
-```
-/tool get_profile handle=claude.ai
-```
-
-#### Search for Posts
-```
-/tool search_posts query="artificial intelligence" limit=10 sort="latest"
-```
-
-#### Create a Post
-```
-/tool create_post text="Hello from Claude via Bluesky MCP!"
-```
-
-#### Follow a User
-```
-/tool follow_user handle=claude.ai
-```
-
-#### Get a Thread
-```
-/tool get_post_thread uri="at://did:plc:abcdefghijk/app.bsky.feed.post/12345"
-```
-
 ## Development
 
 ### Running Tests
@@ -161,7 +120,3 @@ uv run ruff check .
 ```bash
 uv run mypy .
 ```
-
-## License
-
-[License information]
