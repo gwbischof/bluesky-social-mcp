@@ -61,6 +61,25 @@ This MCP server provides tools for all major Bluesky API operations including:
 
 ## Usage
 
+### Authentication
+
+This MCP server uses environment variables for authentication. Before using any tool that requires authentication, set the following environment variables:
+
+Required:
+```bash
+export BLUESKY_IDENTIFIER=yourusername.bsky.social
+export BLUESKY_APP_PASSWORD=your-app-password
+```
+
+Optional:
+```bash
+export BLUESKY_SERVICE_URL=https://bsky.social  # Default value, change if using a different instance
+```
+
+Authentication happens automatically when you use any tool that requires it. No explicit login command is needed.
+
+### Using the Tools
+
 To use with Claude:
 
 1. Install the MCP server in Claude Desktop:
@@ -68,12 +87,19 @@ To use with Claude:
    mcp install path_to_your_server.py
    ```
 
-2. In Claude, authenticate with your Bluesky account:
-   ```
-   /tool login --handle "yourusername.bsky.social" --password "your-app-password"
-   ```
+2. Set the environment variables as described above.
 
 3. Use any of the available tools, for example:
    ```
    /tool get_timeline_posts
+   ```
+
+4. To check if your environment variables are correctly set:
+   ```
+   /tool check_environment_variables
+   ```
+
+5. To check your authentication status:
+   ```
+   /tool check_auth_status
    ```

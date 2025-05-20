@@ -6,9 +6,11 @@ A single-file implementation with all tool logic directly embedded.
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import base64
+import functools
 import re
 from io import BytesIO
-from typing import Any, AsyncIterator, Dict, List, Optional, Union
+import os
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, TypeVar, Union
 
 from atproto import Client
 from mcp.server.fastmcp import Context, FastMCP
@@ -50,50 +52,81 @@ mcp = FastMCP(
     dependencies=["atproto", "mcp"],
 )
 
+# Type variable for function return types
+F = TypeVar('F', bound=Callable[..., Any])
+
+def require_auth(func: F) -> F:
+    """Decorator to require authentication for a tool.
+    
+    If not authenticated, attempts to authenticate using environment variables.
+    
+    Args:
+        func: The function to decorate
+        
+    Returns:
+        Decorated function
+    """
+    @functools.wraps(func)
+    def wrapper(ctx: Context, *args, **kwargs):
+        auth_manager = ctx.request_context.lifespan_context.auth_manager
+        
+        # Check if already authenticated
+        if not auth_manager.is_authenticated(ctx):
+            # Try to authenticate using environment variables
+            success, error = auth_manager.authenticate_from_env(ctx)
+            
+            # If environment authentication failed, return error
+            if not success:
+                return {"status": "error", "message": f"Authentication required. {error}"}
+        
+        # Now call the original function
+        return func(ctx, *args, **kwargs)
+    
+    return wrapper
+
 
 @mcp.tool()
-def login(handle: str, password: str, ctx: Context) -> dict:
-    """Log in to Bluesky with your handle and app password.
+def check_environment_variables(ctx: Context) -> dict:
+    """Check if Bluesky environment variables are set.
 
     Args:
-        handle: Your Bluesky handle (username)
-        password: Your Bluesky password or app password
         ctx: MCP context
 
     Returns:
-        Status of authentication
+        Status of environment variables
     """
-    auth_manager = ctx.request_context.lifespan_context.auth_manager
-    success, error = auth_manager.authenticate(handle, password, ctx)
-
-    if success:
-        return {"status": "success", "message": f"Logged in as {handle}"}
+    handle = os.environ.get("BLUESKY_IDENTIFIER")
+    password = os.environ.get("BLUESKY_APP_PASSWORD")
+    service_url = os.environ.get("BLUESKY_SERVICE_URL")
+    
+    status = {
+        "BLUESKY_IDENTIFIER": "✅ Set" if handle else "❌ Not set",
+        "BLUESKY_APP_PASSWORD": "✅ Set" if password else "❌ Not set",
+        "BLUESKY_SERVICE_URL": f"✅ Set to {service_url}" if service_url else "⚠️ Not set (will default to https://bsky.social)"
+    }
+    
+    if handle and password:
+        return {
+            "status": "success", 
+            "message": "Required environment variables are correctly set",
+            "variables": status
+        }
     else:
-        return {"status": "error", "message": error}
-
-
-@mcp.tool()
-def logout(ctx: Context) -> dict:
-    """Log out from Bluesky.
-
-    Args:
-        ctx: MCP context
-
-    Returns:
-        Status of logout operation
-    """
-    auth_manager = ctx.request_context.lifespan_context.auth_manager
-    success = auth_manager.logout(ctx)
-
-    if success:
-        return {"status": "success", "message": "Logged out successfully"}
-    else:
-        return {"status": "error", "message": "Not logged in"}
+        return {
+            "status": "error", 
+            "message": "Missing required environment variables",
+            "variables": status
+        }
 
 
 @mcp.tool()
 def check_auth_status(ctx: Context) -> dict:
     """Check if the current session is authenticated.
+    
+    Authentication happens automatically using environment variables:
+    - BLUESKY_IDENTIFIER: Required - your Bluesky handle
+    - BLUESKY_APP_PASSWORD: Required - your app password
+    - BLUESKY_SERVICE_URL: Optional - defaults to https://bsky.social
 
     Args:
         ctx: MCP context
@@ -112,10 +145,25 @@ def check_auth_status(ctx: Context) -> dict:
             "did": client.me.did,
         }
     else:
-        return {"status": "not_authenticated"}
+        # Check if environment variables are set
+        handle = os.environ.get("BLUESKY_IDENTIFIER")
+        password = os.environ.get("BLUESKY_APP_PASSWORD")
+        service_url = os.environ.get("BLUESKY_SERVICE_URL", "https://bsky.social")
+        
+        if handle and password:
+            return {
+                "status": "not_authenticated",
+                "message": f"Environment variables are set but authentication hasn't happened yet. Will connect to {service_url} when you use any tool."
+            }
+        else:
+            return {
+                "status": "not_authenticated",
+                "message": "Required environment variables BLUESKY_IDENTIFIER and/or BLUESKY_APP_PASSWORD are not set."
+            }
 
 
 @mcp.tool()
+@require_auth
 def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
     """Get a user profile.
 
@@ -127,9 +175,6 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
         Profile data
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
-
     client = auth_manager.get_client(ctx)
 
     try:
@@ -147,6 +192,7 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
 
 
 @mcp.tool()
+@require_auth
 def get_follows(
     ctx: Context,
     handle: Optional[str] = None,
@@ -165,9 +211,6 @@ def get_follows(
         List of followed accounts
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
-
     client = auth_manager.get_client(ctx)
 
     try:
@@ -189,6 +232,7 @@ def get_follows(
 
 
 @mcp.tool()
+@require_auth
 def get_followers(
     ctx: Context,
     handle: Optional[str] = None,
@@ -207,9 +251,6 @@ def get_followers(
         List of follower accounts
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
-
     client = auth_manager.get_client(ctx)
 
     try:
@@ -231,6 +272,7 @@ def get_followers(
 
 
 @mcp.tool()
+@require_auth
 def get_timeline_posts(
     ctx: Context,
     limit: Union[int, str] = 50,
@@ -249,9 +291,6 @@ def get_timeline_posts(
         Timeline posts
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
-
     client = auth_manager.get_client(ctx)
 
     try:
@@ -271,6 +310,7 @@ def get_timeline_posts(
 
 
 @mcp.tool()
+@require_auth
 def get_feed_posts(
     ctx: Context,
     feed: str,
@@ -289,9 +329,6 @@ def get_feed_posts(
         Feed posts
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
-
     client = auth_manager.get_client(ctx)
 
     try:
@@ -309,6 +346,7 @@ def get_feed_posts(
 
 
 @mcp.tool()
+@require_auth
 def get_list_posts(
     ctx: Context,
     list_uri: str,
@@ -327,8 +365,6 @@ def get_list_posts(
         List posts
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -347,6 +383,7 @@ def get_list_posts(
 
 
 @mcp.tool()
+@require_auth
 def get_user_posts(
     ctx: Context,
     handle: Optional[str] = None,
@@ -367,8 +404,6 @@ def get_user_posts(
         User posts
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -393,6 +428,7 @@ def get_user_posts(
 
 
 @mcp.tool()
+@require_auth
 def get_liked_posts(
     ctx: Context,
     handle: Optional[str] = None,
@@ -411,8 +447,6 @@ def get_liked_posts(
         Liked posts
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -435,6 +469,7 @@ def get_liked_posts(
 
 
 @mcp.tool()
+@require_auth
 def like_post(
     ctx: Context,
     uri: str,
@@ -451,8 +486,6 @@ def like_post(
         Status of the like operation
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -471,6 +504,7 @@ def like_post(
 
 
 @mcp.tool()
+@require_auth
 def create_post(
     ctx: Context,
     text: str,
@@ -493,8 +527,6 @@ def create_post(
         Status of the post creation
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -557,6 +589,7 @@ def create_post(
 
 
 @mcp.tool()
+@require_auth
 def follow_user(
     ctx: Context,
     handle: str,
@@ -571,8 +604,6 @@ def follow_user(
         Status of the follow operation
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -595,6 +626,7 @@ def follow_user(
 
 
 @mcp.tool()
+@require_auth
 def search_posts(
     ctx: Context,
     query: str,
@@ -615,8 +647,6 @@ def search_posts(
         Search results
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -642,6 +672,7 @@ def search_posts(
 
 
 @mcp.tool()
+@require_auth
 def search_people(
     ctx: Context,
     query: str,
@@ -660,8 +691,6 @@ def search_people(
         Search results
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -683,6 +712,7 @@ def search_people(
 
 
 @mcp.tool()
+@require_auth
 def search_feeds(
     ctx: Context,
     query: str,
@@ -701,8 +731,6 @@ def search_feeds(
         Search results
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -724,6 +752,7 @@ def search_feeds(
 
 
 @mcp.tool()
+@require_auth
 def get_post_thread(
     ctx: Context,
     uri: str,
@@ -742,8 +771,6 @@ def get_post_thread(
         Thread data
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -837,6 +864,7 @@ def convert_url_to_uri(
 
 
 @mcp.tool()
+@require_auth
 def get_trends(
     ctx: Context,
 ) -> Dict:
@@ -849,8 +877,6 @@ def get_trends(
         Trending topics with post counts
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
@@ -894,6 +920,7 @@ def get_trends(
 
 
 @mcp.tool()
+@require_auth
 def get_pinned_feeds(
     ctx: Context,
 ) -> Dict:
@@ -906,8 +933,6 @@ def get_pinned_feeds(
         Pinned feeds
     """
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-    if not auth_manager.is_authenticated(ctx):
-        return {"status": "error", "message": "Authentication required"}
 
     client = auth_manager.get_client(ctx)
 
