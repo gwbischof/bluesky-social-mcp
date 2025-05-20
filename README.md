@@ -56,7 +56,7 @@ This MCP server provides tools for all major Bluesky API operations including:
    ```
    uv run python -m bluesky_mcp_server.server
    ```
-   
+
    Note: The server requires Python 3.12 or higher as specified in pyproject.toml.
 
 ## Usage
@@ -77,25 +77,3 @@ To use with Claude:
    ```
    /tool get_timeline_posts
    ```
-
-## Development
-
-1. Setup development environment:
-   ```
-   uv add --dev ruff mypy black pytest
-   ```
-
-2. Run tests:
-   ```
-   uv run pytest
-   ```
-
-3. Run linting and type checking:
-   ```
-   uv run ruff check .
-   uv run mypy .
-   ```
-
-## License
-
-This project is licensed under the terms of the MIT license.
