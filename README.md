@@ -92,12 +92,63 @@ Authentication happens automatically when you use any tool that requires it. No 
 
 ## Using with Claude
 
-### Installation
+### Communication Modes
 
-1. Install the MCP server in Claude Desktop:
+The server supports two communication modes:
+
+1. **HTTP Server** (default for interactive use)
+   - Used when running the server directly in a terminal
+   - Accessible via HTTP requests to localhost
+
+2. **StdIO Server** (automatic for Claude integration)
+   - Used when the server is run with piped input/output
+   - Automatically activated when used with Claude
+   - Allows direct communication between Claude and the server
+
+### Installation in Claude
+
+1. Install the MCP server in Claude:
    ```bash
    mcp install /path/to/bluesky_mcp_server/server.py
    ```
+
+2. Set environment variables in your Claude environment:
+   ```bash
+   export BLUESKY_IDENTIFIER=yourusername.bsky.social
+   export BLUESKY_APP_PASSWORD=your-app-password
+   ```
+
+3. Access tools in Claude using the `/tool` command:
+   ```
+   /tool check_auth_status
+   ```
+
+### Example Usage in Claude
+
+#### Check Authentication
+```
+/tool check_auth_status
+```
+
+#### View Your Timeline
+```
+/tool get_timeline_posts
+```
+
+#### Get User Profile
+```
+/tool get_profile handle=claude.ai
+```
+
+#### Search for Posts
+```
+/tool search_posts query="artificial intelligence" limit=10 sort="latest"
+```
+
+#### Create a Post
+```
+/tool create_post text="Hello from Claude via Bluesky MCP!"
+```
 
 ## Development
 
