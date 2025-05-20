@@ -7,9 +7,8 @@ An MCP server for interacting with the Bluesky social network, providing tools f
 This MCP server provides tools for all major Bluesky API operations including:
 
 ### Authentication
-- `login`: Log in with your Bluesky handle and app password
-- `logout`: Log out of Bluesky
 - `check_auth_status`: Check if you're authenticated
+- `check_environment_variables`: Verify your environment variables are set correctly
 
 ### Profile
 - `get_profile`: Get a user profile
@@ -25,7 +24,7 @@ This MCP server provides tools for all major Bluesky API operations including:
 ### Interaction
 - `get_liked_posts`: Get posts liked by a user
 - `like_post`: Like a post
-- `create_post`: Create a new post
+- `create_post`: Create a new post with optional images, reply and quote support
 - `follow_user`: Follow a specific user
 
 ### Search
@@ -41,27 +40,40 @@ This MCP server provides tools for all major Bluesky API operations including:
 
 ## Installation
 
+### Prerequisites
+- Python 3.12 or higher
+- uv package manager
+
+### Setup
+
 1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/bluesky-mcp-server.git
-   cd bluesky-mcp-server
+   ```bash
+   git clone https://github.com/yourusername/bluesky-social-mcp.git
+   cd bluesky-social-mcp
    ```
 
 2. Install dependencies:
+   ```bash
+   uv sync
    ```
-   uv add atproto mcp[cli]
+   
+   Or if starting fresh:
+   ```bash
+   uv add atproto mcp[cli] requests
+   uv add --dev black mypy pytest ruff
    ```
 
-3. Run the server:
+3. Run the server directly:
+   ```bash
+   uv run python bluesky_mcp_server/server.py
    ```
-   uv run python -m bluesky_mcp_server.server
+
+4. Alternatively, use the run script:
+   ```bash
+   uv run python run_server.py
    ```
 
-   Note: The server requires Python 3.12 or higher as specified in pyproject.toml.
-
-## Usage
-
-### Authentication
+## Authentication
 
 This MCP server uses environment variables for authentication. Before using any tool that requires authentication, set the following environment variables:
 
@@ -78,28 +90,78 @@ export BLUESKY_SERVICE_URL=https://bsky.social  # Default value, change if using
 
 Authentication happens automatically when you use any tool that requires it. No explicit login command is needed.
 
-### Using the Tools
+## Using with Claude
 
-To use with Claude:
+### Installation
 
 1. Install the MCP server in Claude Desktop:
-   ```
-   mcp install path_to_your_server.py
-   ```
-
-2. Set the environment variables as described above.
-
-3. Use any of the available tools, for example:
-   ```
-   /tool get_timeline_posts
+   ```bash
+   mcp install /path/to/bluesky_mcp_server/server.py
    ```
 
-4. To check if your environment variables are correctly set:
-   ```
-   /tool check_environment_variables
-   ```
+2. Set the environment variables as described in the Authentication section.
 
-5. To check your authentication status:
-   ```
-   /tool check_auth_status
-   ```
+3. In Claude, you can now access Bluesky tools via the `/tool` slash command.
+
+### Examples
+
+#### Check Authentication
+```
+/tool check_auth_status
+```
+
+#### View Your Timeline
+```
+/tool get_timeline_posts
+```
+
+#### Get User Profile
+```
+/tool get_profile handle=claude.ai
+```
+
+#### Search for Posts
+```
+/tool search_posts query="artificial intelligence" limit=10 sort="latest"
+```
+
+#### Create a Post
+```
+/tool create_post text="Hello from Claude via Bluesky MCP!"
+```
+
+#### Follow a User
+```
+/tool follow_user handle=claude.ai
+```
+
+#### Get a Thread
+```
+/tool get_post_thread uri="at://did:plc:abcdefghijk/app.bsky.feed.post/12345"
+```
+
+## Development
+
+### Running Tests
+```bash
+uv run pytest
+```
+
+### Code Formatting
+```bash
+uv run black .
+```
+
+### Linting
+```bash
+uv run ruff check .
+```
+
+### Type Checking
+```bash
+uv run mypy .
+```
+
+## License
+
+[License information]
