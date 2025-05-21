@@ -437,6 +437,7 @@ def check_auth_status(ctx: Context) -> str:
 
 @mcp.tool()
 def create_post(
+    ctx: Context,
     text: str,
     reply_to: Optional[Dict] = None,
     images: Optional[List[Dict]] = None,
@@ -446,6 +447,7 @@ def create_post(
     """Create a new post.
 
     Args:
+        ctx: MCP context
         text: Text content of the post
         reply_to: Optional reply information dict with keys uri and cid
         images: Optional list of image dicts with keys image_data (base64) and alt
@@ -455,9 +457,7 @@ def create_post(
     Returns:
         Status of the post creation
     """
-    ctx = mcp.get_context()
-    auth_manager = ctx.request_context.lifespan_context.auth_manager
-    client = auth_manager.get_client(ctx)
+    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
     
     try:
         # Basic text post
@@ -487,7 +487,7 @@ def create_post(
                 if "image_data" in img_data and "alt" in img_data:
                     # Assuming image_data is base64 encoded
                     img_bytes = BytesIO(base64.b64decode(img_data["image_data"]))
-                    upload = client.upload_blob(img_bytes.read())
+                    upload = bluesky_client.upload_blob(img_bytes.read())
 
                     image_uploads.append({"image": upload.blob, "alt": img_data["alt"]})
 
@@ -501,7 +501,7 @@ def create_post(
             post_params["quote"] = {"uri": quote_uri, "cid": quote_cid}  # type: ignore
 
         # Create the post
-        post_response = client.send_post(**post_params)
+        post_response = bluesky_client.send_post(**post_params)
         return {
             "status": "success",
             "message": "Post created successfully",
@@ -894,19 +894,19 @@ def create_post(
 
 @mcp.tool()
 def delete_post(
+    ctx: Context,
     uri: str,
 ) -> Dict:
     """Delete a post created by the authenticated user.
 
     Args:
+        ctx: MCP context
         uri: URI of the post to delete
 
     Returns:
         Status of the delete operation
     """
-    ctx = mcp.get_context()
-    auth_manager = ctx.request_context.lifespan_context.auth_manager
-    client = auth_manager.get_client(ctx)
+    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
 
     try:
         # Extract the record key from the URI
@@ -914,14 +914,14 @@ def delete_post(
         post_uri = AtUri.from_str(uri)
 
         # Verify this is a post from the authenticated user
-        if post_uri.did != client.me.did:
+        if post_uri.did != bluesky_client.me.did:
             return {
                 "status": "error",
                 "message": "You can only delete your own posts",
             }
 
         # Delete the post
-        client.delete_post(uri)
+        bluesky_client.delete_post(uri)
 
         return {
             "status": "success",
