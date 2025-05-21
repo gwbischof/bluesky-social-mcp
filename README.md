@@ -89,6 +89,11 @@ mcp dev server.py --with pandas --with numpy
 mcp dev server.py --with-editable .
 ```
 
+### Run the tests
+```bash
+uv run pytest
+```
+
 ## Using with Claude
 
 ### Installation in Claude
