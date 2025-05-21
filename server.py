@@ -72,32 +72,30 @@ def check_auth_status(ctx: Context) -> str:
     return bluesky_client._base_url
 
 
-# @mcp.tool()
-# def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
-#     """Get a user profile.
+@mcp.tool()
+def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
+    """Get a user profile.
 
-#     Args:
-#         ctx: MCP context
-#         handle: Optional handle to get profile for. If None, gets the authenticated user
+    Args:
+        ctx: MCP context
+        handle: Optional handle to get profile for. If None, gets the authenticated user
 
-#     Returns:
-#         Profile data
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-#     client = auth_manager.get_client(ctx)
+    Returns:
+        Profile data
+    """
+    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
 
-#     try:
-#         # If no handle provided, get authenticated user's profile
-#         if not handle:
-#             handle = client.me.handle
+    try:
+        # If no handle provided, get authenticated user's profile
+        if not handle:
+            handle = bluesky_client.me.handle
 
-#         profile_response = client.app.bsky.actor.get_profile({"actor": handle})
-#         profile = profile_response.dict()
-#         return {"status": "success", "profile": profile}
-#     except Exception as e:
-#         error_msg = f"Failed to get profile: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+        profile_response = bluesky_client.get_profile(handle)
+        profile = profile_response.dict()
+        return {"status": "success", "profile": profile}
+    except Exception as e:
+        error_msg = f"Failed to get profile: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
 # @mcp.tool()
@@ -510,7 +508,6 @@ def create_post(
         }
     except Exception as e:
         error_msg = f"Failed to create post: {str(e)}"
-        ctx.error(error_msg)
         return {"status": "error", "message": error_msg}
 
 
@@ -909,17 +906,6 @@ def delete_post(
     bluesky_client = ctx.request_context.lifespan_context.bluesky_client
 
     try:
-        # Extract the record key from the URI
-        from atproto import AtUri
-        post_uri = AtUri.from_str(uri)
-
-        # Verify this is a post from the authenticated user
-        if post_uri.did != bluesky_client.me.did:
-            return {
-                "status": "error",
-                "message": "You can only delete your own posts",
-            }
-
         # Delete the post
         bluesky_client.delete_post(uri)
 
@@ -929,7 +915,6 @@ def delete_post(
         }
     except Exception as e:
         error_msg = f"Failed to delete post: {str(e)}"
-        ctx.error(error_msg)
         return {"status": "error", "message": error_msg}
 
 
