@@ -6,18 +6,16 @@ A single-file implementation with all tool logic directly embedded.
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import base64
-import functools
-import re
 from io import BytesIO
 import os
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, TypeVar, Union
+import sys
 
 from atproto import Client
 from mcp.server.fastmcp import Context, FastMCP
 
 from authentication import login
 
-import logging
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent.absolute()
@@ -40,11 +38,10 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """
     # Initialize resources
     bluesky_client = login()
-    
     try:
         yield AppContext(bluesky_client=bluesky_client)
     finally:
-        # Cleanup resources when shutting down
+        # TODO: Add a logout here.
         pass
 
 
@@ -447,8 +444,9 @@ def create_post(
     Returns:
         Status of the post creation
     """
+    # TODO: change name to send_post and update to match atproto client.
     bluesky_client = ctx.request_context.lifespan_context.bluesky_client
-    
+
     try:
         # Basic text post
         post_params = {"text": text}
@@ -1751,6 +1749,5 @@ def get_bluesky_tools_info() -> Dict:
 
 # Main entry point
 if __name__ == "__main__":
-    # Auto-detect based on TTY
-    transport = "sse" if os.isatty(0) else "stdio"
-    mcp.run(transport=transport)
+    # Stdio is prefered for local execution.
+    mcp.run(transport="stdio")
