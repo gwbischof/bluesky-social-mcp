@@ -509,6 +509,38 @@ def like_post(
 
 @mcp.tool()
 @require_auth
+def unlike_post(
+    ctx: Context,
+    uri: str,
+    cid: str,
+) -> Dict:
+    """Unlike a previously liked post.
+
+    Args:
+        ctx: MCP context
+        uri: URI of the post to unlike
+        cid: CID of the post to unlike
+
+    Returns:
+        Status of the unlike operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        client.unlike(uri, cid)
+        return {
+            "status": "success",
+            "message": "Post unliked successfully",
+        }
+    except Exception as e:
+        error_msg = f"Failed to unlike post: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
 def create_post(
     ctx: Context,
     text: str,
@@ -585,6 +617,434 @@ def create_post(
         }
     except Exception as e:
         error_msg = f"Failed to create post: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def repost_post(
+    ctx: Context,
+    uri: str,
+    cid: str,
+) -> Dict:
+    """Repost another user's post.
+
+    Args:
+        ctx: MCP context
+        uri: URI of the post to repost
+        cid: CID of the post to repost
+
+    Returns:
+        Status of the repost operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        repost_response = client.repost(uri, cid)
+        return {
+            "status": "success",
+            "message": "Post reposted successfully",
+            "repost_uri": repost_response.uri,
+            "repost_cid": repost_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to repost: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def unrepost_post(
+    ctx: Context,
+    uri: str,
+    cid: str,
+) -> Dict:
+    """Remove a repost of another user's post.
+
+    Args:
+        ctx: MCP context
+        uri: URI of the post to unrepost
+        cid: CID of the post to unrepost
+
+    Returns:
+        Status of the unrepost operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        client.unrepost(uri, cid)
+        return {
+            "status": "success",
+            "message": "Post unreposted successfully",
+        }
+    except Exception as e:
+        error_msg = f"Failed to unrepost: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def get_likes(
+    ctx: Context,
+    uri: str,
+    cid: Optional[str] = None,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+) -> Dict:
+    """Get likes for a post.
+
+    Args:
+        ctx: MCP context
+        uri: URI of the post to get likes for
+        cid: Optional CID of the post (not strictly required)
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
+
+    Returns:
+        List of likes for the post
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        params = {"uri": uri, "limit": max(1, min(100, limit))}
+        if cursor:
+            params["cursor"] = cursor
+            
+        likes_response = client.get_likes(params)
+        likes_data = likes_response.dict()
+        
+        return {"status": "success", "likes": likes_data}
+    except Exception as e:
+        error_msg = f"Failed to get likes: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def get_reposted_by(
+    ctx: Context,
+    uri: str,
+    cid: Optional[str] = None,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+) -> Dict:
+    """Get users who reposted a post.
+
+    Args:
+        ctx: MCP context
+        uri: URI of the post to get reposts for
+        cid: Optional CID of the post (not strictly required)
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
+
+    Returns:
+        List of users who reposted the post
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        params = {"uri": uri, "limit": max(1, min(100, limit))}
+        if cursor:
+            params["cursor"] = cursor
+            
+        reposts_response = client.get_reposted_by(params)
+        reposts_data = reposts_response.dict()
+        
+        return {"status": "success", "reposts": reposts_data}
+    except Exception as e:
+        error_msg = f"Failed to get reposts: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def send_image(
+    ctx: Context,
+    text: str,
+    image_data: str,
+    alt_text: str = "",
+    reply_to: Optional[Dict] = None,
+) -> Dict:
+    """Send a post with a single image.
+
+    Args:
+        ctx: MCP context
+        text: Text content of the post
+        image_data: Base64-encoded image data
+        alt_text: Alternative text description for the image
+        reply_to: Optional reply information dict with keys uri and cid
+
+    Returns:
+        Status of the post creation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # Decode base64 image
+        try:
+            img_bytes = BytesIO(base64.b64decode(image_data))
+            image = img_bytes.read()
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to decode image data: {str(e)}",
+            }
+            
+        # Prepare reply parameters if needed
+        reply_params = {}
+        if reply_to and "uri" in reply_to and "cid" in reply_to:
+            reply_params = {
+                "reply_to": {
+                    "uri": reply_to["uri"],
+                    "cid": reply_to["cid"]
+                }
+            }
+            
+            # Handle root if provided
+            if "root_uri" in reply_to and "root_cid" in reply_to:
+                reply_params["reply_to"]["root"] = {
+                    "uri": reply_to["root_uri"],
+                    "cid": reply_to["root_cid"]
+                }
+                
+        # Send the post with image
+        post_response = client.send_image(
+            text=text,
+            image=image,
+            image_alt=alt_text,
+            **reply_params
+        )
+        
+        return {
+            "status": "success",
+            "message": "Post with image created successfully",
+            "post_uri": post_response.uri,
+            "post_cid": post_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to create post with image: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def send_images(
+    ctx: Context,
+    text: str,
+    images: List[Dict[str, str]],
+    reply_to: Optional[Dict] = None,
+) -> Dict:
+    """Send a post with multiple images (up to 4).
+
+    Args:
+        ctx: MCP context
+        text: Text content of the post
+        images: List of image dicts, each with "image_data" (base64) and "alt" keys
+        reply_to: Optional reply information dict with keys uri and cid
+
+    Returns:
+        Status of the post creation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # Verify we have 1-4 images
+        if not images:
+            return {
+                "status": "error",
+                "message": "At least one image is required",
+            }
+        
+        if len(images) > 4:
+            return {
+                "status": "error",
+                "message": "Maximum of 4 images allowed",
+            }
+            
+        # Process images
+        image_bytes_list = []
+        alt_texts = []
+        
+        for img in images:
+            if "image_data" not in img:
+                return {
+                    "status": "error", 
+                    "message": "Each image must contain 'image_data' with base64 encoded content"
+                }
+                
+            # Decode base64 image
+            try:
+                img_bytes = BytesIO(base64.b64decode(img["image_data"]))
+                image_bytes_list.append(img_bytes.read())
+                
+                # Add alt text
+                alt_texts.append(img.get("alt", ""))
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": f"Failed to decode image data: {str(e)}",
+                }
+                
+        # Prepare reply parameters if needed
+        reply_params = {}
+        if reply_to and "uri" in reply_to and "cid" in reply_to:
+            reply_params = {
+                "reply_to": {
+                    "uri": reply_to["uri"],
+                    "cid": reply_to["cid"]
+                }
+            }
+            
+            # Handle root if provided
+            if "root_uri" in reply_to and "root_cid" in reply_to:
+                reply_params["reply_to"]["root"] = {
+                    "uri": reply_to["root_uri"],
+                    "cid": reply_to["root_cid"]
+                }
+                
+        # Send the post with images
+        post_response = client.send_images(
+            text=text,
+            image=image_bytes_list,
+            alt_text=alt_texts,
+            **reply_params
+        )
+        
+        return {
+            "status": "success",
+            "message": "Post with images created successfully",
+            "post_uri": post_response.uri,
+            "post_cid": post_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to create post with images: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def send_video(
+    ctx: Context,
+    text: str,
+    video_data: str,
+    alt_text: str = "",
+    reply_to: Optional[Dict] = None,
+) -> Dict:
+    """Send a post with a video.
+
+    Args:
+        ctx: MCP context
+        text: Text content of the post
+        video_data: Base64-encoded video data
+        alt_text: Alternative text description for the video
+        reply_to: Optional reply information dict with keys uri and cid
+
+    Returns:
+        Status of the post creation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # Decode base64 video
+        try:
+            video_bytes = BytesIO(base64.b64decode(video_data))
+            video = video_bytes.read()
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to decode video data: {str(e)}",
+            }
+            
+        # Prepare reply parameters if needed
+        reply_params = {}
+        if reply_to and "uri" in reply_to and "cid" in reply_to:
+            reply_params = {
+                "reply_to": {
+                    "uri": reply_to["uri"],
+                    "cid": reply_to["cid"]
+                }
+            }
+            
+            # Handle root if provided
+            if "root_uri" in reply_to and "root_cid" in reply_to:
+                reply_params["reply_to"]["root"] = {
+                    "uri": reply_to["root_uri"],
+                    "cid": reply_to["root_cid"]
+                }
+                
+        # Send the post with video
+        post_response = client.send_video(
+            text=text,
+            video=video,
+            video_alt=alt_text,
+            **reply_params
+        )
+        
+        return {
+            "status": "success",
+            "message": "Post with video created successfully",
+            "post_uri": post_response.uri,
+            "post_cid": post_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to create post with video: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def delete_post(
+    ctx: Context,
+    uri: str,
+) -> Dict:
+    """Delete a post created by the authenticated user.
+
+    Args:
+        ctx: MCP context
+        uri: URI of the post to delete
+
+    Returns:
+        Status of the delete operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # Extract the record key from the URI
+        from atproto import AtUri
+        post_uri = AtUri.from_str(uri)
+        
+        # Verify this is a post from the authenticated user
+        if post_uri.did != client.me.did:
+            return {
+                "status": "error",
+                "message": "You can only delete your own posts",
+            }
+            
+        # Delete the post
+        client.delete_post(uri)
+        
+        return {
+            "status": "success",
+            "message": "Post deleted successfully",
+        }
+    except Exception as e:
+        error_msg = f"Failed to delete post: {str(e)}"
         ctx.error(error_msg)
         return {"status": "error", "message": error_msg}
 
@@ -739,6 +1199,454 @@ def search_feeds(
         return {"status": "success", "search_results": search_results}
     except Exception as e:
         error_msg = f"Failed to search feeds: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def block_user(
+    ctx: Context,
+    handle: str,
+) -> Dict:
+    """Block a user.
+
+    Args:
+        ctx: MCP context
+        handle: Handle of the user to block
+
+    Returns:
+        Status of the block operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # First resolve the handle to a DID
+        resolved = client.resolve_handle(handle)
+        did = resolved.did
+
+        # Now block the user
+        block_response = client.app.bsky.graph.block.create(
+            client.me.did,
+            {"subject": did, "createdAt": client.get_current_time_iso()},
+        )
+        
+        return {
+            "status": "success",
+            "message": f"Blocked user @{handle}",
+            "block_uri": block_response.uri,
+        }
+    except Exception as e:
+        error_msg = f"Failed to block user: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def unblock_user(
+    ctx: Context,
+    handle: str,
+) -> Dict:
+    """Unblock a previously blocked user.
+
+    Args:
+        ctx: MCP context
+        handle: Handle of the user to unblock
+
+    Returns:
+        Status of the unblock operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # First resolve the handle to a DID
+        resolved = client.resolve_handle(handle)
+        did = resolved.did
+
+        # Find the block record
+        blocks = client.app.bsky.graph.block.list(client.me.did, limit=100)
+        
+        block_record = None
+        for uri, block in blocks.records.items():
+            if block.subject == did:
+                block_record = uri
+                break
+        
+        if not block_record:
+            return {
+                "status": "error",
+                "message": f"No block record found for @{handle}",
+            }
+        
+        # Extract the rkey from the AT URI
+        from atproto import AtUri
+        rkey = AtUri.from_str(block_record).rkey
+        
+        # Delete the block
+        client.app.bsky.graph.block.delete(client.me.did, rkey)
+        
+        return {
+            "status": "success",
+            "message": f"Unblocked user @{handle}",
+        }
+    except Exception as e:
+        error_msg = f"Failed to unblock user: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def get_blocks(
+    ctx: Context,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+) -> Dict:
+    """Get list of users blocked by the authenticated user.
+
+    Args:
+        ctx: MCP context
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
+
+    Returns:
+        List of blocked users
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        params = {"limit": max(1, min(100, limit))}
+        if cursor:
+            params["cursor"] = cursor
+            
+        blocks_response = client.app.bsky.graph.block.list(client.me.did, **params)
+        
+        # Extract and enhance the block records
+        blocks_data = []
+        for uri, block in blocks_response.records.items():
+            try:
+                # Try to get profile info for each blocked user
+                profile = client.app.bsky.actor.get_profile({"actor": block.subject}).dict()
+                blocks_data.append({
+                    "uri": uri,
+                    "did": block.subject,
+                    "profile": profile,
+                })
+            except Exception:
+                # If profile fetch fails, just include the basic info
+                blocks_data.append({
+                    "uri": uri,
+                    "did": block.subject,
+                })
+        
+        result = {
+            "blocks": blocks_data,
+            "cursor": blocks_response.cursor if hasattr(blocks_response, "cursor") else None,
+        }
+        
+        return {"status": "success", "blocks_data": result}
+    except Exception as e:
+        error_msg = f"Failed to get blocks: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def mute_user(
+    ctx: Context,
+    handle: str,
+) -> Dict:
+    """Mute a user.
+
+    Args:
+        ctx: MCP context
+        handle: Handle of the user to mute
+
+    Returns:
+        Status of the mute operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # First resolve the handle to a DID
+        resolved = client.resolve_handle(handle)
+        did = resolved.did
+
+        # Mute the user
+        client.app.bsky.graph.mute_actor({"actor": did})
+        
+        return {
+            "status": "success",
+            "message": f"Muted user @{handle}",
+        }
+    except Exception as e:
+        error_msg = f"Failed to mute user: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def unmute_user(
+    ctx: Context,
+    handle: str,
+) -> Dict:
+    """Unmute a previously muted user.
+
+    Args:
+        ctx: MCP context
+        handle: Handle of the user to unmute
+
+    Returns:
+        Status of the unmute operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # First resolve the handle to a DID
+        resolved = client.resolve_handle(handle)
+        did = resolved.did
+
+        # Unmute the user
+        client.app.bsky.graph.unmute_actor({"actor": did})
+        
+        return {
+            "status": "success",
+            "message": f"Unmuted user @{handle}",
+        }
+    except Exception as e:
+        error_msg = f"Failed to unmute user: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def get_mutes(
+    ctx: Context,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+) -> Dict:
+    """Get list of users muted by the authenticated user.
+
+    Args:
+        ctx: MCP context
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
+
+    Returns:
+        List of muted users
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        params = {"limit": max(1, min(100, limit))}
+        if cursor:
+            params["cursor"] = cursor
+            
+        mutes_response = client.app.bsky.graph.get_mutes(params)
+        mutes_data = mutes_response.dict()
+        
+        return {"status": "success", "mutes": mutes_data}
+    except Exception as e:
+        error_msg = f"Failed to get mutes: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def get_notifications(
+    ctx: Context,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+    seen_at: Optional[str] = None,
+    filter: Optional[str] = None,
+) -> Dict:
+    """Get notifications for the authenticated user.
+
+    Args:
+        ctx: MCP context
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
+        seen_at: RFC3339 timestamp to mark notifications as seen up to
+        filter: Optional filter for notification type ('mentions', 'replies', 'quotes', 'reposts', 'follows', 'likes')
+
+    Returns:
+        List of notifications
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        params = {"limit": max(1, min(100, limit))}
+        if cursor:
+            params["cursor"] = cursor
+        if seen_at:
+            params["seenAt"] = seen_at
+
+        # Handle filter types
+        valid_filters = {'mentions', 'replies', 'quotes', 'reposts', 'follows', 'likes'}
+        if filter and filter in valid_filters:
+            # Only include if it's a valid filter
+            params["filter"] = filter
+            
+        notifications_response = client.app.bsky.notification.list_notifications(params)
+        notifications_data = notifications_response.dict()
+        
+        return {"status": "success", "notifications": notifications_data}
+    except Exception as e:
+        error_msg = f"Failed to get notifications: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def count_unread_notifications(ctx: Context) -> Dict:
+    """Count unread notifications for the authenticated user.
+
+    Args:
+        ctx: MCP context
+
+    Returns:
+        Count of unread notifications
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        count_response = client.app.bsky.notification.get_unread_count({})
+        
+        return {
+            "status": "success",
+            "count": count_response.count,
+            "last_seen_at": getattr(count_response, "last_seen", None),
+        }
+    except Exception as e:
+        error_msg = f"Failed to count unread notifications: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def mark_notifications_seen(ctx: Context) -> Dict:
+    """Mark all notifications as seen.
+
+    Args:
+        ctx: MCP context
+
+    Returns:
+        Status of the operation
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # Get current time as ISO string
+        timestamp = client.get_current_time_iso()
+        
+        # Mark notifications as seen
+        client.app.bsky.notification.update_seen({"seenAt": timestamp})
+        
+        return {
+            "status": "success",
+            "message": "Notifications marked as seen",
+            "seen_at": timestamp,
+        }
+    except Exception as e:
+        error_msg = f"Failed to mark notifications as seen: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+@require_auth
+def get_notification_preferences(ctx: Context) -> Dict:
+    """Get notification preferences for the authenticated user.
+
+    Args:
+        ctx: MCP context
+
+    Returns:
+        Notification preferences
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    client = auth_manager.get_client(ctx)
+
+    try:
+        # Get user preferences
+        prefs_response = client.app.bsky.actor.get_preferences({})
+
+        # Extract notification preferences
+        notification_prefs = {}
+        for pref in prefs_response.preferences:
+            # Look for notification-specific preferences
+            if pref.type == "app.bsky.actor.defs#notificationPref":
+                notification_prefs = pref.dict()
+                break
+        
+        # If no notification preferences found, return empty default
+        if not notification_prefs:
+            notification_prefs = {"enabled": True}
+        
+        return {
+            "status": "success",
+            "preferences": notification_prefs,
+        }
+    except Exception as e:
+        error_msg = f"Failed to get notification preferences: {str(e)}"
+        ctx.error(error_msg)
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def resolve_handle(
+    ctx: Context,
+    handle: str,
+) -> Dict:
+    """Resolve a handle to a DID.
+
+    This tool does not require authentication and can be used to convert
+    a Bluesky handle (like username.bsky.social) to a DID.
+
+    Args:
+        ctx: MCP context
+        handle: User handle to resolve
+
+    Returns:
+        Resolved DID information
+    """
+    auth_manager = ctx.request_context.lifespan_context.auth_manager
+    
+    # Try to use existing client if authenticated
+    client = None
+    if auth_manager.is_authenticated(ctx):
+        client = auth_manager.get_client(ctx)
+    else:
+        # Create a temporary client instance for unauthenticated use
+        from atproto import Client
+        client = Client()
+    
+    try:
+        resolved = client.resolve_handle(handle)
+        
+        return {
+            "status": "success",
+            "handle": handle,
+            "did": resolved.did,
+        }
+    except Exception as e:
+        error_msg = f"Failed to resolve handle: {str(e)}"
         ctx.error(error_msg)
         return {"status": "error", "message": error_msg}
 

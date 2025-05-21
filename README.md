@@ -4,41 +4,65 @@ An MCP server for interacting with the Bluesky social network, providing tools f
 
 Built with FastMCP, this server offers seamless integration with Claude and provides a comprehensive set of tools for Bluesky API operations.
 
-## Features
+Provides support for all of the methods of the python Bluesky client: [atproto](https://github.com/MarshalX/atproto)
 
-This MCP server provides tools for all major Bluesky API operations including:
+## Tools
 
-### Authentication
-- `check_auth_status`: Check if you're authenticated
-- `check_environment_variables`: Verify your environment variables are set correctly
+### Authentication & Setup
+- `check_environment_variables` - Check if Bluesky environment variables are set correctly
+- `check_auth_status` - Check if the current session is authenticated
+- `resolve_handle` - Convert a Bluesky handle to a DID
 
-### Profile
-- `get_profile`: Get a user profile
-- `get_follows`: Get users followed by an account
-- `get_followers`: Get users who follow an account
+### Profile Operations
+- `get_profile` - Get a user profile
+- `get_follows` - Get users followed by an account
+- `get_followers` - Get users who follow an account
+- `follow_user` - Follow a user
+- `block_user` - Block a user
+- `unblock_user` - Unblock a previously blocked user
+- `get_blocks` - Get list of blocked users
+- `mute_user` - Mute a user
+- `unmute_user` - Unmute a previously muted user
+- `get_mutes` - Get list of muted users
 
-### Timeline
-- `get_timeline_posts`: Get posts from your home timeline
-- `get_feed_posts`: Get posts from a specific feed
-- `get_list_posts`: Get posts from a specific list
-- `get_user_posts`: Get posts from a specific user
+### Feed Operations
+- `get_timeline_posts` - Get posts from your home timeline
+- `get_feed_posts` - Get posts from a specific feed
+- `get_list_posts` - Get posts from a specific list
+- `get_user_posts` - Get posts from a specific user
+- `get_liked_posts` - Get posts liked by a user
+- `get_post_thread` - Get a full conversation thread for a post
 
-### Interaction
-- `get_liked_posts`: Get posts liked by a user
-- `like_post`: Like a post
-- `create_post`: Create a new post with optional images, reply and quote support
-- `follow_user`: Follow a specific user
+### Post Interactions
+- `like_post` - Like a post
+- `unlike_post` - Unlike a post
+- `get_likes` - Get likes for a post
+- `repost_post` - Repost another user's post
+- `unrepost_post` - Remove a repost
+- `get_reposted_by` - Get users who reposted a post
+
+### Post Creation
+- `create_post` - Create a new text post with optional replies/quotes
+- `send_image` - Send a post with a single image
+- `send_images` - Send a post with multiple images (up to 4)
+- `send_video` - Send a post with a video
+- `delete_post` - Delete a post
+
+### Notification Management
+- `get_notifications` - Get notifications for your account
+- `count_unread_notifications` - Count unread notifications
+- `mark_notifications_seen` - Mark all notifications as seen
+- `get_notification_preferences` - Get notification preferences
 
 ### Search
-- `search_posts`: Search for posts
-- `search_people`: Search for people
-- `search_feeds`: Search for feeds
+- `search_posts` - Search for posts with keywords
+- `search_people` - Search for users/profiles
+- `search_feeds` - Search for feeds
 
 ### Utilities
-- `get_post_thread`: Get a full conversation thread
-- `convert_url_to_uri`: Convert a Bluesky web URL to AT URI format
-- `get_trends`: Get current trending topics on Bluesky
-- `get_pinned_feeds`: Get pinned feeds from user preferences
+- `convert_url_to_uri` - Convert a Bluesky web URL to AT URI format
+- `get_trends` - Get current trending topics on Bluesky
+- `get_pinned_feeds` - Get pinned feeds from user preferences
 
 ## Installation
 
