@@ -6,6 +6,11 @@ Built with FastMCP, this server offers seamless integration with Claude and prov
 
 Provides support for all of the methods of the python Bluesky client: [atproto](https://github.com/MarshalX/atproto)
 
+## Note
+- Create and Delete post are working.
+- There is boilerplate for the rest of the tools.
+- I have to write tests for the rest of the tools and get them working.
+
 ## Tools
 
 ### Authentication & Setup
