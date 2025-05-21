@@ -1,4 +1,4 @@
-# Bluesky Model Context Protocol Server
+# Bluesky Social MCP
 
 An MCP server for interacting with the Bluesky social network.
 Provides support for all of the methods of the python Bluesky client: [atproto](https://github.com/MarshalX/atproto)
