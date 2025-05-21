@@ -5,6 +5,7 @@ import os
 import sys
 import pytest
 import uuid
+import asyncio
 
 from server import mcp
 from mcp.shared.memory import create_connected_server_and_client_session as client_session
@@ -44,6 +45,7 @@ async def test_create_and_delete_post():
         like_result = json.loads(result.content[0].text)
         assert like_result.get("status") == "success"
 
+        await asyncio.sleep(1)
         # Get likes for the post (should be empty)
         get_likes_params = {"uri": post_uri}
         result = await client.call_tool("get_likes", get_likes_params)
@@ -53,11 +55,12 @@ async def test_create_and_delete_post():
         # Like count should be 1
         likes_data = likes_result.get("likes", {})
         like_count = len(likes_data.get("likes", []))
+        assert like_count == 1
         
-        # TODO: This isn't working.
-        # assert like_count == 1
+        # TODO: this part doesn't work yet, I'm not sure how to get the like_uri.
         # Unlike the post
-        # unlike_params = {"uri": post_uri, "cid": post_cid}
+        # like_uri = likes_data['likes'][0]
+        # unlike_params = {"like_uri": like_uri}
         # result = await client.call_tool("unlike_post", unlike_params)
         # unlike_result = json.loads(result.content[0].text)
         # assert unlike_result.get("status") == "success"
