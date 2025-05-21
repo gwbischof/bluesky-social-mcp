@@ -10,19 +10,12 @@ import functools
 import re
 from io import BytesIO
 import os
-import asyncio
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, TypeVar, Union
 
 from atproto import Client
-import mcp.server.stdio
 from mcp.server.fastmcp import Context, FastMCP
-from mcp.server.stdio import stdio_server
-from mcp.server import NotificationOptions, Server
-from mcp.server.models import InitializationOptions
 
 from authentication import BlueskyAuthManager
-
-MODE='stdio'
 
 @dataclass
 class ServerContext:
@@ -52,23 +45,13 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
 
 
 # Create MCP server
-if MODE == 'stdio':
-    mcp = Server(
-        name="bluesky-social",
-        lifespan=app_lifespan,
-    )
-else:
-    mcp = FastMCP(
-        name="bluesky-social",
-        lifespan=app_lifespan,
-        dependencies=["atproto", "mcp"],
-    )
+mcp = FastMCP(
+    name="bluesky-social",
+    lifespan=app_lifespan,
+    dependencies=["atproto", "mcp"],
+)
 
-# Type variable for function return types
-F = TypeVar("F", bound=Callable[..., Any])
-
-
-def require_auth(func: F) -> F:
+def require_auth(func):
     """Decorator to require authentication for a tool.
 
     If not authenticated, attempts to authenticate using environment variables.
@@ -102,7 +85,7 @@ def require_auth(func: F) -> F:
     return wrapper
 
 
-@mcp.call_tool()
+@mcp.tool()
 def check_environment_variables(ctx: Context) -> dict:
     """Check if Bluesky environment variables are set.
 
@@ -140,7 +123,7 @@ def check_environment_variables(ctx: Context) -> dict:
         }
 
 
-@mcp.call_tool()
+@mcp.tool()
 def check_auth_status(ctx: Context) -> dict:
     """Check if the current session is authenticated.
 
@@ -183,7 +166,7 @@ def check_auth_status(ctx: Context) -> dict:
             }
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
     """Get a user profile.
@@ -212,7 +195,7 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_follows(
     ctx: Context,
@@ -252,7 +235,7 @@ def get_follows(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_followers(
     ctx: Context,
@@ -292,7 +275,7 @@ def get_followers(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_timeline_posts(
     ctx: Context,
@@ -330,7 +313,7 @@ def get_timeline_posts(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_feed_posts(
     ctx: Context,
@@ -366,7 +349,7 @@ def get_feed_posts(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_list_posts(
     ctx: Context,
@@ -403,7 +386,7 @@ def get_list_posts(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_user_posts(
     ctx: Context,
@@ -448,7 +431,7 @@ def get_user_posts(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_liked_posts(
     ctx: Context,
@@ -489,7 +472,7 @@ def get_liked_posts(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def like_post(
     ctx: Context,
@@ -524,7 +507,7 @@ def like_post(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def create_post(
     ctx: Context,
@@ -606,7 +589,7 @@ def create_post(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def follow_user(
     ctx: Context,
@@ -643,7 +626,7 @@ def follow_user(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def search_posts(
     ctx: Context,
@@ -686,7 +669,7 @@ def search_posts(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def search_people(
     ctx: Context,
@@ -723,7 +706,7 @@ def search_people(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def search_feeds(
     ctx: Context,
@@ -760,7 +743,7 @@ def search_feeds(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_post_thread(
     ctx: Context,
@@ -799,7 +782,7 @@ def get_post_thread(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 def convert_url_to_uri(
     ctx: Context,
     url: str,
@@ -872,7 +855,7 @@ def convert_url_to_uri(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_trends(
     ctx: Context,
@@ -930,7 +913,7 @@ def get_trends(
         return {"status": "error", "message": error_msg}
 
 
-@mcp.call_tool()
+@mcp.tool()
 @require_auth
 def get_pinned_feeds(
     ctx: Context,
@@ -997,31 +980,27 @@ def get_pinned_feeds(
         return {"status": "error", "message": error_msg}
 
 
-# Support for running as a stdio server
-async def run_stdio_server():
-    """Run the server with stdio communication."""
-    async with stdio_server() as (read_stream, write_stream):
-        await mcp.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="bluesky-social",
-                server_version="0.1.0",
-                capabilities=mcp.get_capabilities(
-                    notification_options=NotificationOptions(),
-                    experimental_capabilities={},
-                ),
-            ),
-        )
+# Add resource to provide information about available tools
+@mcp.resource("info://bluesky-tools")
+def get_bluesky_tools_info() -> Dict:
+    """Get information about the available Bluesky tools."""
+    tools_info = {
+        "description": "Bluesky API Tools",
+        "version": "0.1.0",
+        "auth_requirements": "Most tools require authentication using BLUESKY_IDENTIFIER and BLUESKY_APP_PASSWORD environment variables",
+        "categories": {
+            "authentication": ["check_environment_variables", "check_auth_status"],
+            "profiles": ["get_profile", "get_follows", "get_followers", "follow_user"],
+            "posts": ["get_timeline_posts", "get_feed_posts", "get_list_posts", "get_user_posts", "get_liked_posts", "create_post", "like_post", "get_post_thread"],
+            "search": ["search_posts", "search_people", "search_feeds"],
+            "utilities": ["convert_url_to_uri", "get_trends", "get_pinned_feeds"],
+        }
+    }
+    return tools_info
 
 
 # Main entry point
 if __name__ == "__main__":
-    # Support both HTTP and stdio
-    # If run directly, we check if stdin is a TTY
-    if os.isatty(0):
-        # Run as HTTP server if stdin is a TTY
-        mcp.run()
-    else:
-        # Run as stdio server if stdin is not a TTY (piped)
-        asyncio.run(run_stdio_server())
+    # Auto-detect based on TTY
+    transport = "sse" if os.isatty(0) else "stdio"
+    mcp.run(transport=transport)
