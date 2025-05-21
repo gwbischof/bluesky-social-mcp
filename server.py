@@ -97,7 +97,6 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
         error_msg = f"Failed to get profile: {str(e)}"
         return {"status": "error", "message": error_msg}
 
-
 # @mcp.tool()
 # def get_follows(
 #     ctx: Context,
@@ -368,69 +367,62 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
 #         return {"status": "error", "message": error_msg}
 
 
-# @mcp.tool()
-# def like_post(
-#     ctx: Context,
-#     uri: str,
-#     cid: str,
-# ) -> Dict:
-#     """Like a post.
+@mcp.tool()
+def like_post(
+    ctx: Context,
+    uri: str,
+    cid: str,
+) -> Dict:
+    """Like a post.
 
-#     Args:
-#         ctx: MCP context
-#         uri: URI of the post to like
-#         cid: CID of the post to like
+    Args:
+        ctx: MCP context
+        uri: URI of the post to like
+        cid: CID of the post to like
 
-#     Returns:
-#         Status of the like operation
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
+    Returns:
+        Status of the like operation
+    """
+    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
 
-#     client = auth_manager.get_client(ctx)
-
-#     try:
-#         like_response = client.like(uri, cid)
-#         return {
-#             "status": "success",
-#             "message": "Post liked successfully",
-#             "like_uri": like_response.uri,
-#             "like_cid": like_response.cid,
-#         }
-#     except Exception as e:
-#         error_msg = f"Failed to like post: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+    try:
+        like_response = bluesky_client.like(uri, cid)
+        return {
+            "status": "success",
+            "message": "Post liked successfully",
+            "like_uri": like_response.uri,
+            "like_cid": like_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to like post: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
-# @mcp.tool()
-# def unlike_post(
-#     ctx: Context,
-#     uri: str,
-#     cid: str,
-# ) -> Dict:
-#     """Unlike a previously liked post.
+@mcp.tool()
+def unlike_post(
+    ctx: Context,
+    like_uri: str,
+) -> Dict:
+    """Unlike a previously liked post.
 
-#     Args:
-#         ctx: MCP context
-#         uri: URI of the post to unlike
-#         cid: CID of the post to unlike
+    Args:
+        ctx: MCP context
+        like_uri: URI of the like.
 
-#     Returns:
-#         Status of the unlike operation
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-#     client = auth_manager.get_client(ctx)
+    Returns:
+        Status of the unlike operation
+    """
+    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
 
-#     try:
-#         client.unlike(uri, cid)
-#         return {
-#             "status": "success",
-#             "message": "Post unliked successfully",
-#         }
-#     except Exception as e:
-#         error_msg = f"Failed to unlike post: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+    try:
+        bluesky_client.unlike(like_uri)
+        return {
+            "status": "success",
+            "message": "Post unliked successfully",
+        }
+    except Exception as e:
+        error_msg = f"Failed to unlike post: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
 @mcp.tool()
@@ -575,42 +567,40 @@ def create_post(
 #         return {"status": "error", "message": error_msg}
 
 
-# @mcp.tool()
-# def get_likes(
-#     ctx: Context,
-#     uri: str,
-#     cid: Optional[str] = None,
-#     limit: Union[int, str] = 50,
-#     cursor: Optional[str] = None,
-# ) -> Dict:
-#     """Get likes for a post.
+@mcp.tool()
+def get_likes(
+    ctx: Context,
+    uri: str,
+    cid: Optional[str] = None,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+) -> Dict:
+    """Get likes for a post.
 
-#     Args:
-#         ctx: MCP context
-#         uri: URI of the post to get likes for
-#         cid: Optional CID of the post (not strictly required)
-#         limit: Maximum number of results to return (1-100)
-#         cursor: Optional pagination cursor
+    Args:
+        ctx: MCP context
+        uri: URI of the post to get likes for
+        cid: Optional CID of the post (not strictly required)
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
 
-#     Returns:
-#         List of likes for the post
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-#     client = auth_manager.get_client(ctx)
+    Returns:
+        List of likes for the post
+    """
+    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
 
-#     try:
-#         params = {"uri": uri, "limit": max(1, min(100, limit))}
-#         if cursor:
-#             params["cursor"] = cursor
+    try:
+        params = {"uri": uri, "limit": max(1, min(100, limit))}
+        if cursor:
+            params["cursor"] = cursor
 
-#         likes_response = client.get_likes(params)
-#         likes_data = likes_response.dict()
+        likes_response = bluesky_client.get_likes(**params)
+        likes_data = likes_response.dict()
 
-#         return {"status": "success", "likes": likes_data}
-#     except Exception as e:
-#         error_msg = f"Failed to get likes: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+        return {"status": "success", "likes": likes_data}
+    except Exception as e:
+        error_msg = f"Failed to get likes: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
 # @mcp.tool()
