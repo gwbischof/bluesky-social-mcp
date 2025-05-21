@@ -95,16 +95,12 @@ mcp dev server.py --with-editable .
 uv run pytest
 ```
 
-## Using with Claude
+### Installation with Claude
+```bash
+uv run mcp install server.py -v BLUESKY_IDENTIFIER=yourusername.bsky.social -v BLUESKY_APP_PASSWORD=your-app-password
+```
 
-### Installation in Claude
-
-1. Install the MCP server in Claude through CLI:
-   ```bash
-   uv run mcp install server.py -v BLUESKY_IDENTIFIER=yourusername.bsky.social -v BLUESKY_APP_PASSWORD=your-app-password
-   ```
-
-2. Or update your mcp server config file like this:
+### Manual install
 ```bash
 {
     "mcpServers": {
