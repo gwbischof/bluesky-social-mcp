@@ -7,7 +7,10 @@ requires-python = ">=3.12"
 dependencies = [
     "atproto>=0.0.61",
     "mcp[cli]>=1.9.0",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
     "requests>=2.32.3",
+    "trio>=0.30.0",
 ]
 
 [dependency-groups]

@@ -82,6 +82,13 @@ Provides support for all of the methods of the python Bluesky client: [atproto](
    uv run python server.py
    ```
 
+### Debug with MCP Inspector
+```bash
+mcp dev server.py
+mcp dev server.py --with pandas --with numpy
+mcp dev server.py --with-editable .
+```
+
 ## Using with Claude
 
 ### Installation in Claude
