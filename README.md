@@ -4,6 +4,10 @@ An MCP server for interacting with the Bluesky social network.
 
 Provides support for all of the methods of the python Bluesky client: [atproto](https://github.com/MarshalX/atproto)
 
+## Requirements
+- `uv` package manager, see: https://docs.astral.sh/uv/getting-started/installation/
+- Bluesky account with an App Password, see: https://bsky.app/settings/app-passwords
+
 ## Status
 - ✅ = Tested and working
 - ❓ = Not yet tested
@@ -65,11 +69,6 @@ Provides support for all of the methods of the python Bluesky client: [atproto](
 - ❓ `get_pinned_feeds` - Get pinned feeds from user preferences
 
 ## Installation
-
-### Prerequisites
-- Python 3.12 or higher
-- uv package manager
-
 ### Setup
 
 1. Install dependencies:
@@ -90,6 +89,8 @@ mcp dev server.py --with-editable .
 ```
 
 ### Run the tests
+- I run the tests against the actual Bluesky server.
+- The tests will use BLUESKY_IDENTIFIER, and BLUESKY_APP_PASSWORD env vars.
 ```bash
 uv run pytest
 ```
@@ -115,6 +116,10 @@ uv run pytest
                 "run",
                 "server.py"
             ]
+            "env": {
+                "BLUESKY_IDENTIFIER": "user-name.bsky.social‬",
+                "BLUESKY_APP_PASSWORD": "app-password-here"
+            }
         }
     }
 }
