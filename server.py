@@ -15,17 +15,21 @@ from typing import Any, AsyncIterator, Callable, Dict, List, Optional, TypeVar, 
 from atproto import Client
 from mcp.server.fastmcp import Context, FastMCP
 
-from authentication import BlueskyAuthManager
+from authentication import login
+
+import logging
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent.absolute()
+
+LOG_FILE = project_root / "custom-mcp.log"
 
 @dataclass
-class ServerContext:
-    """Server context holding shared resources."""
-
-    auth_manager: BlueskyAuthManager
-
+class AppContext:
+    bluesky_client: Client
 
 @asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
+async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """Manage application lifecycle with typed context.
 
     Args:
@@ -35,13 +39,10 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
         ServerContext with initialized resources
     """
     # Initialize resources
-    auth_manager = BlueskyAuthManager()
+    bluesky_client = login()
     
-    # Add id attribute to server to fix test errors
-    server._mcp_server.id = "test_server_id"
-
     try:
-        yield ServerContext(auth_manager=auth_manager)
+        yield AppContext(bluesky_client=bluesky_client)
     finally:
         # Cleanup resources when shutting down
         pass
@@ -54,84 +55,24 @@ mcp = FastMCP(
     dependencies=["atproto", "mcp"],
 )
 
-def require_auth(func):
-    """Decorator to require authentication for a tool.
-
-    If not authenticated, attempts to authenticate using environment variables.
-
-    Args:
-        func: The function to decorate
-
-    Returns:
-        Decorated function
-    """
-
-    @functools.wraps(func)
-    def wrapper(ctx: Context, *args, **kwargs):
-        auth_manager = ctx.request_context.lifespan_context.auth_manager
-
-        # Check if already authenticated
-        if not auth_manager.is_authenticated(ctx):
-            # Try to authenticate using environment variables
-            success, error = auth_manager.authenticate_from_env(ctx)
-
-            # If environment authentication failed, return error
-            if not success:
-                return {
-                    "status": "error",
-                    "message": f"Authentication required. {error}",
-                }
-
-        # Now call the original function
-        return func(ctx, *args, **kwargs)
-
-    return wrapper
-
 @mcp.tool()
-def check_auth_status(ctx: Context) -> dict:
+def check_auth_status(ctx: Context) -> str:
     """Check if the current session is authenticated.
 
     Authentication happens automatically using environment variables:
     - BLUESKY_IDENTIFIER: Required - your Bluesky handle
-    - BLUESKY_APP_PASSWORD: Required - your app password
+    - BLUESKY_APP_PASSWORD:w
+    : Required - your app password
     - BLUESKY_SERVICE_URL: Optional - defaults to https://bsky.social
-
-    Args:
-        ctx: MCP context
 
     Returns:
         Authentication status
     """
-    auth_manager = ctx.request_context.lifespan_context.auth_manager
-    is_authenticated = auth_manager.is_authenticated(ctx)
-
-    if is_authenticated:
-        client = auth_manager.get_client(ctx)
-        return {
-            "status": "authenticated",
-            "handle": client.me.handle,
-            "did": client.me.did,
-        }
-    else:
-        # Check if environment variables are set
-        handle = os.environ.get("BLUESKY_IDENTIFIER")
-        password = os.environ.get("BLUESKY_APP_PASSWORD")
-        service_url = os.environ.get("BLUESKY_SERVICE_URL", "https://bsky.social")
-
-        if handle and password:
-            return {
-                "status": "not_authenticated",
-                "message": f"Environment variables are set but authentication hasn't happened yet. Will connect to {service_url} when you use any tool.",
-            }
-        else:
-            return {
-                "status": "not_authenticated",
-                "message": "Required environment variables BLUESKY_IDENTIFIER and/or BLUESKY_APP_PASSWORD are not set.",
-            }
+    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
+    return bluesky_client._base_url
 
 
 # @mcp.tool()
-# @require_auth
 # def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
 #     """Get a user profile.
 
@@ -160,7 +101,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def get_follows(
 #     ctx: Context,
 #     handle: Optional[str] = None,
@@ -200,7 +140,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def get_followers(
 #     ctx: Context,
 #     handle: Optional[str] = None,
@@ -240,7 +179,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def get_timeline_posts(
 #     ctx: Context,
 #     limit: Union[int, str] = 50,
@@ -278,7 +216,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def get_feed_posts(
 #     ctx: Context,
 #     feed: str,
@@ -314,7 +251,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def get_list_posts(
 #     ctx: Context,
 #     list_uri: str,
@@ -351,7 +287,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def get_user_posts(
 #     ctx: Context,
 #     handle: Optional[str] = None,
@@ -396,7 +331,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def get_liked_posts(
 #     ctx: Context,
 #     handle: Optional[str] = None,
@@ -437,7 +371,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def like_post(
 #     ctx: Context,
 #     uri: str,
@@ -472,7 +405,6 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 # @mcp.tool()
-# @require_auth
 # def unlike_post(
 #     ctx: Context,
 #     uri: str,
@@ -504,9 +436,7 @@ def check_auth_status(ctx: Context) -> dict:
 
 
 @mcp.tool()
-@require_auth
 def create_post(
-    ctx: Context,
     text: str,
     reply_to: Optional[Dict] = None,
     images: Optional[List[Dict]] = None,
@@ -516,7 +446,6 @@ def create_post(
     """Create a new post.
 
     Args:
-        ctx: MCP context
         text: Text content of the post
         reply_to: Optional reply information dict with keys uri and cid
         images: Optional list of image dicts with keys image_data (base64) and alt
@@ -526,10 +455,10 @@ def create_post(
     Returns:
         Status of the post creation
     """
+    ctx = mcp.get_context()
     auth_manager = ctx.request_context.lifespan_context.auth_manager
-
     client = auth_manager.get_client(ctx)
-    print("CLIENT")
+    
     try:
         # Basic text post
         post_params = {"text": text}
@@ -586,7 +515,6 @@ def create_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def repost_post(
 #     ctx: Context,
 #     uri: str,
@@ -620,7 +548,6 @@ def create_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def unrepost_post(
 #     ctx: Context,
 #     uri: str,
@@ -652,7 +579,6 @@ def create_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_likes(
 #     ctx: Context,
 #     uri: str,
@@ -691,7 +617,6 @@ def create_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_reposted_by(
 #     ctx: Context,
 #     uri: str,
@@ -730,7 +655,6 @@ def create_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def send_image(
 #     ctx: Context,
 #     text: str,
@@ -802,7 +726,6 @@ def create_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def send_images(
 #     ctx: Context,
 #     text: str,
@@ -899,7 +822,6 @@ def create_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def send_video(
 #     ctx: Context,
 #     text: str,
@@ -971,20 +893,18 @@ def create_post(
 
 
 @mcp.tool()
-@require_auth
 def delete_post(
-    ctx: Context,
     uri: str,
 ) -> Dict:
     """Delete a post created by the authenticated user.
 
     Args:
-        ctx: MCP context
         uri: URI of the post to delete
 
     Returns:
         Status of the delete operation
     """
+    ctx = mcp.get_context()
     auth_manager = ctx.request_context.lifespan_context.auth_manager
     client = auth_manager.get_client(ctx)
 
@@ -1014,7 +934,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def follow_user(
 #     ctx: Context,
 #     handle: str,
@@ -1051,7 +970,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def search_posts(
 #     ctx: Context,
 #     query: str,
@@ -1094,7 +1012,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def search_people(
 #     ctx: Context,
 #     query: str,
@@ -1131,7 +1048,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def search_feeds(
 #     ctx: Context,
 #     query: str,
@@ -1168,7 +1084,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def block_user(
 #     ctx: Context,
 #     handle: str,
@@ -1208,7 +1123,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def unblock_user(
 #     ctx: Context,
 #     handle: str,
@@ -1263,7 +1177,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_blocks(
 #     ctx: Context,
 #     limit: Union[int, str] = 50,
@@ -1320,7 +1233,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def mute_user(
 #     ctx: Context,
 #     handle: str,
@@ -1356,7 +1268,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def unmute_user(
 #     ctx: Context,
 #     handle: str,
@@ -1392,7 +1303,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_mutes(
 #     ctx: Context,
 #     limit: Union[int, str] = 50,
@@ -1427,7 +1337,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_notifications(
 #     ctx: Context,
 #     limit: Union[int, str] = 50,
@@ -1474,7 +1383,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def count_unread_notifications(ctx: Context) -> Dict:
 #     """Count unread notifications for the authenticated user.
 
@@ -1502,7 +1410,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def mark_notifications_seen(ctx: Context) -> Dict:
 #     """Mark all notifications as seen.
 
@@ -1534,7 +1441,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_notification_preferences(ctx: Context) -> Dict:
 #     """Get notification preferences for the authenticated user.
 
@@ -1616,7 +1522,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_post_thread(
 #     ctx: Context,
 #     uri: str,
@@ -1728,7 +1633,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_trends(
 #     ctx: Context,
 # ) -> Dict:
@@ -1786,7 +1690,6 @@ def delete_post(
 
 
 # @mcp.tool()
-# @require_auth
 # def get_pinned_feeds(
 #     ctx: Context,
 # ) -> Dict:
@@ -1853,22 +1756,22 @@ def delete_post(
 
 
 # Add resource to provide information about available tools
-# @mcp.resource("info://bluesky-tools")
-# def get_bluesky_tools_info() -> Dict:
-#     """Get information about the available Bluesky tools."""
-#     tools_info = {
-#         "description": "Bluesky API Tools",
-#         "version": "0.1.0",
-#         "auth_requirements": "Most tools require authentication using BLUESKY_IDENTIFIER and BLUESKY_APP_PASSWORD environment variables",
-#         "categories": {
-#             "authentication": ["check_environment_variables", "check_auth_status"],
-#             "profiles": ["get_profile", "get_follows", "get_followers", "follow_user"],
-#             "posts": ["get_timeline_posts", "get_feed_posts", "get_list_posts", "get_user_posts", "get_liked_posts", "create_post", "like_post", "get_post_thread"],
-#             "search": ["search_posts", "search_people", "search_feeds"],
-#             "utilities": ["convert_url_to_uri", "get_trends", "get_pinned_feeds"],
-#         }
-#     }
-#     return tools_info
+@mcp.resource("info://bluesky-tools")
+def get_bluesky_tools_info() -> Dict:
+    """Get information about the available Bluesky tools."""
+    tools_info = {
+        "description": "Bluesky API Tools",
+        "version": "0.1.0",
+        "auth_requirements": "Most tools require authentication using BLUESKY_IDENTIFIER and BLUESKY_APP_PASSWORD environment variables",
+        "categories": {
+            "authentication": ["check_environment_variables", "check_auth_status"],
+            "profiles": ["get_profile", "get_follows", "get_followers", "follow_user"],
+            "posts": ["get_timeline_posts", "get_feed_posts", "get_list_posts", "get_user_posts", "get_liked_posts", "create_post", "like_post", "get_post_thread"],
+            "search": ["search_posts", "search_people", "search_feeds"],
+            "utilities": ["convert_url_to_uri", "get_trends", "get_pinned_feeds"],
+        }
+    }
+    return tools_info
 
 
 # Main entry point
