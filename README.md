@@ -2,6 +2,8 @@
 
 An MCP server for interacting with the Bluesky social network, providing tools for accessing Bluesky data and performing actions through Claude.
 
+Built with FastMCP, this server offers seamless integration with Claude and provides a comprehensive set of tools for Bluesky API operations.
+
 ## Features
 
 This MCP server provides tools for all major Bluesky API operations including:
@@ -56,25 +58,7 @@ This MCP server provides tools for all major Bluesky API operations including:
    uv run python server.py
    ```
 
-   Or as a module:
-   ```bash
-   uv run python -m server
-   ```
-
 ## Using with Claude
-
-### Communication Modes
-
-The server supports two communication modes:
-
-1. **HTTP Server** (default for interactive use)
-   - Used when running the server directly in a terminal
-   - Accessible via HTTP requests to localhost
-
-2. **StdIO Server** (automatic for Claude integration)
-   - Used when the server is run with piped input/output
-   - Automatically activated when used with Claude
-   - Allows direct communication between Claude and the server
 
 ### Installation in Claude
 
