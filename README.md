@@ -10,6 +10,7 @@ Provides support for all of the methods of the python Bluesky client: [atproto](
 - Create and Delete post are working.
 - There is boilerplate for the rest of the tools.
 - I have to write tests for the rest of the tools and get them working.
+- I will also add uvx support.
 
 ## Tools
 
