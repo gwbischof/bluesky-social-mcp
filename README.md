@@ -8,11 +8,6 @@ Provides support for all of the methods of the python Bluesky client: [atproto](
 - ✅ = Tested and working
 - ❓ = Not yet tested
 
-Features:
-- Post creation and deletion are fully working and tested
-- Like/unlike and get likes functionality is now working and tested
-- All tools are being migrated to use the explicit Context pattern
-
 ## Tools
 
 ### Authentication & Setup
