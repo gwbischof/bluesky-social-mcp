@@ -1,15 +1,11 @@
 # Bluesky Model Context Protocol Server
 
-An MCP server for interacting with the Bluesky social network, providing tools for accessing Bluesky data and performing actions through Claude.
-
-Built with FastMCP, this server offers seamless integration with Claude and provides a comprehensive set of tools for Bluesky API operations.
-
+An MCP server for interacting with the Bluesky social network.
 Provides support for all of the methods of the python Bluesky client: [atproto](https://github.com/MarshalX/atproto)
 
 ## Note
 - Create and Delete post are working.
-- There is boilerplate for the rest of the tools.
-- I have to write tests for the rest of the tools and get them working.
+- I have to test the rest of the tools.
 - I will also add uvx support.
 
 ## Tools
