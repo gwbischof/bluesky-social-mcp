@@ -1,6 +1,7 @@
 # Bluesky Social MCP
 
 An MCP server for interacting with the Bluesky social network via the [atproto](https://github.com/MarshalX/atproto) client.
+If you have any problems running this MCP, leave an issue and I'll help you out.
 
 ## Quick Start
 
