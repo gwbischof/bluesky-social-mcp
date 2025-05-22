@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Integration tests for Bluesky MCP server post operations."""
 import json
-import os
-import sys
 import pytest
 import uuid
 import asyncio

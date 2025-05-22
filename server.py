@@ -8,8 +8,7 @@ from dataclasses import dataclass
 import base64
 from io import BytesIO
 import os
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, TypeVar, Union
-import sys
+from typing import Any, AsyncIterator, Dict, List, Optional, Union
 
 from atproto import Client
 from mcp.server.fastmcp import Context, FastMCP
@@ -21,7 +20,7 @@ project_root = Path(__file__).parent.parent.absolute()
 LOG_FILE = project_root / "custom-mcp.log"
 
 
-def login() -> Client:
+def login() -> Optional[Client]:
     """Login to Bluesky API and return the client.
     
     Authenticates using environment variables:
@@ -30,14 +29,14 @@ def login() -> Client:
     - BLUESKY_SERVICE_URL: The service URL (defaults to "https://bsky.social")
     
     Returns:
-        Authenticated Client instance or None if authentication fails
+        Authenticated Client instance or None if credentials are not available
     """
     handle = os.environ.get("BLUESKY_IDENTIFIER")
     password = os.environ.get("BLUESKY_APP_PASSWORD")
     service_url = os.environ.get("BLUESKY_SERVICE_URL", "https://bsky.social")
 
     if not handle or not password:
-        raise ValueError("BLUESKY_IDENTIFIER and/or BLUESKY_APP_PASSWORD environment variables not set")
+        return None
  
     # This is helpful for debugging.
     # print(f"LOGIN {handle=} {service_url=}", file=sys.stderr)
@@ -47,9 +46,41 @@ def login() -> Client:
     client.login(handle, password)
     return client
 
+
+def get_authenticated_client(ctx: Context) -> Client:
+    """Get an authenticated client, creating it lazily if needed.
+    
+    Args:
+        ctx: MCP context
+        
+    Returns:
+        Authenticated Client instance
+        
+    Raises:
+        ValueError: If credentials are not available
+    """
+    app_context = ctx.request_context.lifespan_context
+    
+    # If we already have a client, return it
+    if app_context.bluesky_client is not None:
+        return app_context.bluesky_client
+    
+    # Try to create a new client by calling login again
+    client = login()
+    if client is None:
+        raise ValueError(
+            "Authentication required but credentials not available. "
+            "Please set BLUESKY_IDENTIFIER and BLUESKY_APP_PASSWORD environment variables."
+        )
+    
+    # Store it in the context for future use
+    app_context.bluesky_client = client
+    return client
+
+
 @dataclass
 class AppContext:
-    bluesky_client: Client
+    bluesky_client: Optional[Client]
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
@@ -61,7 +92,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     Yields:
         ServerContext with initialized resources
     """
-    # Initialize resources
+    # Initialize resources - login may return None if credentials not available
     bluesky_client = login()
     try:
         yield AppContext(bluesky_client=bluesky_client)
@@ -83,15 +114,17 @@ def check_auth_status(ctx: Context) -> str:
 
     Authentication happens automatically using environment variables:
     - BLUESKY_IDENTIFIER: Required - your Bluesky handle
-    - BLUESKY_APP_PASSWORD:w
-    : Required - your app password
+    - BLUESKY_APP_PASSWORD: Required - your app password
     - BLUESKY_SERVICE_URL: Optional - defaults to https://bsky.social
 
     Returns:
         Authentication status
     """
-    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
-    return bluesky_client._base_url
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        return f"Authenticated to {bluesky_client._base_url}"
+    except ValueError as e:
+        return f"Not authenticated: {str(e)}"
 
 
 @mcp.tool()
@@ -105,9 +138,9 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
     Returns:
         Profile data
     """
-    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
-
     try:
+        bluesky_client = get_authenticated_client(ctx)
+        
         # If no handle provided, get authenticated user's profile
         if not handle:
             handle = bluesky_client.me.handle
@@ -405,9 +438,8 @@ def like_post(
     Returns:
         Status of the like operation
     """
-    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
-
     try:
+        bluesky_client = get_authenticated_client(ctx)
         like_response = bluesky_client.like(uri, cid)
         return {
             "status": "success",
@@ -434,9 +466,8 @@ def unlike_post(
     Returns:
         Status of the unlike operation
     """
-    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
-
     try:
+        bluesky_client = get_authenticated_client(ctx)
         bluesky_client.unlike(like_uri)
         return {
             "status": "success",
@@ -470,9 +501,8 @@ def create_post(
         Status of the post creation
     """
     # TODO: change name to send_post and update to match atproto client.
-    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
-
     try:
+        bluesky_client = get_authenticated_client(ctx)
         # Basic text post
         post_params = {"text": text}
 
@@ -610,9 +640,8 @@ def get_likes(
     Returns:
         List of likes for the post
     """
-    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
-
     try:
+        bluesky_client = get_authenticated_client(ctx)
         params = {"uri": uri, "limit": max(1, min(100, limit))}
         if cursor:
             params["cursor"] = cursor
@@ -916,9 +945,8 @@ def delete_post(
     Returns:
         Status of the delete operation
     """
-    bluesky_client = ctx.request_context.lifespan_context.bluesky_client
-
     try:
+        bluesky_client = get_authenticated_client(ctx)
         # Delete the post
         bluesky_client.delete_post(uri)
 
