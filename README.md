@@ -1,18 +1,30 @@
 # Bluesky Social MCP
 
-An MCP server for interacting with the Bluesky social network.
+An MCP server for interacting with the Bluesky social network via the [atproto](https://github.com/MarshalX/atproto) client.
 
-Provides support for all of the methods of the python Bluesky client: [atproto](https://github.com/MarshalX/atproto)
+## Quick Start
 
-## Requirements
-- `uv` package manager, see: https://docs.astral.sh/uv/getting-started/installation/
-- Bluesky account with an App Password, see: https://bsky.app/settings/app-passwords
+Get your Bluesky app password at: https://bsky.app/settings/app-passwords
 
-## Status
+Add to your Claude Desktop config:
+```json
+{
+  "mcpServers": {
+    "bluesky-social": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/gwbischof/bluesky-social-mcp", "bluesky-social-mcp"],
+      "env": {
+        "BLUESKY_IDENTIFIER": "your-handle.bsky.social",
+        "BLUESKY_APP_PASSWORD": "your-app-password"
+      }
+    }
+  }
+}
+```
+
+## Tool Status
 - ✅ = Tested and working
 - ❓ = Not yet tested
-
-## Tools
 
 ### Authentication & Setup
 - ✅ `check_auth_status` - Check if the current session is authenticated
@@ -67,28 +79,6 @@ Provides support for all of the methods of the python Bluesky client: [atproto](
 - ❓ `convert_url_to_uri` - Convert a Bluesky web URL to AT URI format
 - ❓ `get_trends` - Get current trending topics on Bluesky
 - ❓ `get_pinned_feeds` - Get pinned feeds from user preferences
-
-## Installation
-
-### Run from GitHub. This is the easiest way to get the mcp running.
-```bash
-{
-    "mcpServers": {
-        "bluesky-social": {
-            "command": "uvx",
-            "args": [
-                "--from",
-                "git+https://github.com/gwbischof/bluesky-social-mcp",
-                "bluesky-social-mcp"
-            ],
-            "env": {
-                "BLUESKY_IDENTIFIER": "user-name.bsky.social",
-                "BLUESKY_APP_PASSWORD": "app-password-here"
-            }
-        }
-    }
-}
-```
 
 ### Run from local clone of repo.
 ```bash
