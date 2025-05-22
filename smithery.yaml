@@ -1,3 +1,28 @@
-version: 1
-start:
-  command: ["uv", "run server.py"]
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - blueskyIdentifier
+      - blueskyAppPassword
+      - blueskyServiceUrl
+    properties:
+      blueskyIdentifier:
+        type: string
+        description: Bluesky handler
+      blueskyAppPassword:
+        type: string
+        description: Bluesky app password
+  commandFunction:
+    |-
+    (config) => ({
+      command: 'uvx',
+      args: ["--from", "git+https://github.com/gwbischof/bluesky-social-mcp", "bluesky-social-mcp"],
+      env: {
+        BLUESKY_IDENTIFIER: config.blueskyIdentifier,
+        BLUESKY_APP_PASSWORD: config.blueskyAppPassword,
+      }
+    })
+  exampleConfig:
+    blueskyIdentifier: your-handle.bsky.social
+    blueskyAppPassword: your-app-password
