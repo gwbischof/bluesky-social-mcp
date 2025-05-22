@@ -153,82 +153,84 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
         return {"status": "error", "message": error_msg}
 
 
-# @mcp.tool()
-# def get_follows(
-#     ctx: Context,
-#     handle: Optional[str] = None,
-#     limit: Union[int, str] = 50,
-#     cursor: Optional[str] = None,
-# ) -> Dict:
-#     """Get users followed by an account.
+@mcp.tool()
+def get_follows(
+    ctx: Context,
+    handle: Optional[str] = None,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+) -> Dict:
+    """Get users followed by an account.
 
-#     Args:
-#         ctx: MCP context
-#         handle: Optional handle to get follows for. If None, gets the authenticated user
-#         limit: Maximum number of results to return (1-100)
-#         cursor: Optional pagination cursor
+    Args:
+        ctx: MCP context
+        handle: Optional handle to get follows for. If None, gets the authenticated user
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
 
-#     Returns:
-#         List of followed accounts
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-#     client = auth_manager.get_client(ctx)
+    Returns:
+        List of followed accounts
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        # If no handle provided, get authenticated user's follows
+        if not handle:
+            handle = bluesky_client.me.handle
+        
+        # Convert limit to int if it's a string
+        if isinstance(limit, str):
+            limit = int(limit)
+        limit = max(1, min(100, limit))
+        
+        # Call get_follows directly with positional arguments as per the client signature
+        follows_response = bluesky_client.get_follows(handle, cursor, limit)
+        follows_data = follows_response.dict()
+        
+        return {"status": "success", "follows": follows_data}
+    except Exception as e:
+        error_msg = f"Failed to get follows: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
-#     try:
-#         # If no handle provided, get authenticated user's follows
-#         if not handle:
-#             handle = client.me.handle
 
-#         params = {"actor": handle, "limit": max(1, min(100, limit))}
-#         if cursor:
-#             params["cursor"] = cursor
+@mcp.tool()
+def get_followers(
+    ctx: Context,
+    handle: Optional[str] = None,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+) -> Dict:
+    """Get users who follow an account.
 
-#         follows_response = client.app.bsky.graph.get_follows(params)
-#         follows = follows_response.dict()
-#         return {"status": "success", "follows": follows}
-#     except Exception as e:
-#         error_msg = f"Failed to get follows: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+    Args:
+        ctx: MCP context
+        handle: Optional handle to get followers for. If None, gets the authenticated user
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
 
-
-# @mcp.tool()
-# def get_followers(
-#     ctx: Context,
-#     handle: Optional[str] = None,
-#     limit: Union[int, str] = 50,
-#     cursor: Optional[str] = None,
-# ) -> Dict:
-#     """Get users who follow an account.
-
-#     Args:
-#         ctx: MCP context
-#         handle: Optional handle to get followers for. If None, gets the authenticated user
-#         limit: Maximum number of results to return (1-100)
-#         cursor: Optional pagination cursor
-
-#     Returns:
-#         List of follower accounts
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-#     client = auth_manager.get_client(ctx)
-
-#     try:
-#         # If no handle provided, get authenticated user's followers
-#         if not handle:
-#             handle = client.me.handle
-
-#         params = {"actor": handle, "limit": max(1, min(100, limit))}
-#         if cursor:
-#             params["cursor"] = cursor
-
-#         followers_response = client.app.bsky.graph.get_followers(params)
-#         followers = followers_response.dict()
-#         return {"status": "success", "followers": followers}
-#     except Exception as e:
-#         error_msg = f"Failed to get followers: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+    Returns:
+        List of follower accounts
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        # If no handle provided, get authenticated user's followers
+        if not handle:
+            handle = bluesky_client.me.handle
+        
+        # Convert limit to int if it's a string
+        if isinstance(limit, str):
+            limit = int(limit)
+        limit = max(1, min(100, limit))
+        
+        # Call get_followers directly with positional arguments as per the client signature
+        followers_response = bluesky_client.get_followers(handle, cursor, limit)
+        followers_data = followers_response.dict()
+        
+        return {"status": "success", "followers": followers_data}
+    except Exception as e:
+        error_msg = f"Failed to get followers: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
 # @mcp.tool()
@@ -942,40 +944,39 @@ def delete_post(
         return {"status": "error", "message": error_msg}
 
 
-# @mcp.tool()
-# def follow_user(
-#     ctx: Context,
-#     handle: str,
-# ) -> Dict:
-#     """Follow a user.
+@mcp.tool()
+def follow_user(
+    ctx: Context,
+    handle: str,
+) -> Dict:
+    """Follow a user.
 
-#     Args:
-#         ctx: MCP context
-#         handle: Handle of the user to follow
+    Args:
+        ctx: MCP context
+        handle: Handle of the user to follow
 
-#     Returns:
-#         Status of the follow operation
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-
-#     client = auth_manager.get_client(ctx)
-
-#     try:
-#         # First resolve the handle to a DID
-#         resolved = client.resolve_handle(handle)
-#         did = resolved.did
-
-#         # Now follow the user
-#         follow_response = client.follow(did)
-#         return {
-#             "status": "success",
-#             "message": f"Now following {handle}",
-#             "follow_uri": follow_response.uri,
-#         }
-#     except Exception as e:
-#         error_msg = f"Failed to follow user: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+    Returns:
+        Status of the follow operation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        # First resolve the handle to a DID
+        resolved = bluesky_client.resolve_handle(handle)
+        did = resolved.did
+        
+        # Now follow the user - follow method expects the DID as subject parameter
+        follow_response = bluesky_client.follow(did)
+        
+        return {
+            "status": "success",
+            "message": f"Now following {handle}",
+            "follow_uri": follow_response.uri,
+            "follow_cid": follow_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to follow user: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
 # @mcp.tool()

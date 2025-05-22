@@ -31,9 +31,9 @@ Add to your Claude Desktop config:
 
 ### Profile Operations
 - ✅ `get_profile` - Get a user profile
-- ❓ `get_follows` - Get users followed by an account
-- ❓ `get_followers` - Get users who follow an account
-- ❓ `follow_user` - Follow a user
+- ✅ `get_follows` - Get users followed by an account
+- ✅ `get_followers` - Get users who follow an account
+- ✅ `follow_user` - Follow a user
 - ❓ `block_user` - Block a user
 - ❓ `unblock_user` - Unblock a previously blocked user
 - ❓ `get_blocks` - Get list of blocked users
@@ -58,7 +58,7 @@ Add to your Claude Desktop config:
 - ❓ `get_reposted_by` - Get users who reposted a post
 
 ### Post Creation
-- ✅ `create_post` - Create a new text post with optional replies/quotes
+- ✅ `send_post` - Create a new text post with optional replies/quotes/embeds
 - ❓ `send_image` - Send a post with a single image
 - ❓ `send_images` - Send a post with multiple images (up to 4)
 - ❓ `send_video` - Send a post with a video
