@@ -957,6 +957,41 @@ def unmute_user(
         return {"status": "error", "message": error_msg}
 
 
+@mcp.tool()
+def unfollow_user(
+    ctx: Context,
+    follow_uri: str,
+) -> Dict:
+    """Unfollow a user.
+
+    Args:
+        ctx: MCP context
+        follow_uri: URI of the follow record to delete
+
+    Returns:
+        Status of the unfollow operation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        # The unfollow method returns a boolean
+        success = bluesky_client.unfollow(follow_uri)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Successfully unfollowed user",
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to unfollow user",
+            }
+    except Exception as e:
+        error_msg = f"Failed to unfollow user: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
 # @mcp.tool()
 # def send_image(
 #     ctx: Context,

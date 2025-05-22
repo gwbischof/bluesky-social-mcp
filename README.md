@@ -34,7 +34,7 @@ Add to your Claude Desktop config:
 - ✅ `get_follows` - Get users followed by an account (Client method: `get_follows`)
 - ✅ `get_followers` - Get users who follow an account (Client method: `get_followers`) 
 - ✅ `follow_user` - Follow a user (Client method: `follow`)
-- ❓ `unfollow_user` - Unfollow a user (Client method: `unfollow`)
+- ✅ `unfollow_user` - Unfollow a user (Client method: `unfollow`)
 - ✅ `mute_user` - Mute a user (Client method: `mute`)
 - ✅ `unmute_user` - Unmute a user (Client method: `unmute`)
 - ✅ `resolve_handle` - Resolve a handle to DID (Client method: `resolve_handle`)
