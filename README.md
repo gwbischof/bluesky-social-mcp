@@ -69,38 +69,28 @@ Provides support for all of the methods of the python Bluesky client: [atproto](
 - ❓ `get_pinned_feeds` - Get pinned feeds from user preferences
 
 ## Installation
-### Setup
 
-1. Install dependencies:
-   ```bash
-   uv sync
-   ```
-
-2. Run the server:
-   ```bash
-   uv run python server.py
-   ```
-
-### Debug with MCP Inspector
+### Run from GitHub. This is the easiest way to get the mcp running.
 ```bash
-mcp dev server.py
-mcp dev server.py --with pandas --with numpy
-mcp dev server.py --with-editable .
+{
+    "mcpServers": {
+        "bluesky-social": {
+            "command": "uvx",
+            "args": [
+                "--from",
+                "git+https://github.com/gwbischof/bluesky-social-mcp",
+                "bluesky-social-mcp"
+            ],
+            "env": {
+                "BLUESKY_IDENTIFIER": "user-name.bsky.social",
+                "BLUESKY_APP_PASSWORD": "app-password-here"
+            }
+        }
+    }
+}
 ```
 
-### Run the tests
-- I run the tests against the actual Bluesky server.
-- The tests will use BLUESKY_IDENTIFIER, and BLUESKY_APP_PASSWORD env vars.
-```bash
-uv run pytest
-```
-
-### Installation with Claude
-```bash
-uv run mcp install server.py -v BLUESKY_IDENTIFIER=yourusername.bsky.social -v BLUESKY_APP_PASSWORD=your-app-password
-```
-
-### Manual install
+### Run from local clone of repo.
 ```bash
 {
     "mcpServers": {
@@ -119,4 +109,28 @@ uv run mcp install server.py -v BLUESKY_IDENTIFIER=yourusername.bsky.social -v B
         }
     }
 }
+```
+
+# Dev Setup
+1. Install dependencies:
+   ```bash
+   uv sync
+   ```
+
+2. Run the server:
+   ```bash
+   uv run bluesky-social-mcp
+   ```
+
+### Debug with MCP Inspector
+```bash
+mcp dev server.py
+mcp dev server.py --with-editable .
+```
+
+### Run the tests
+- I run the tests against the actual Bluesky server.
+- The tests will use BLUESKY_IDENTIFIER, and BLUESKY_APP_PASSWORD env vars.
+```bash
+uv run pytest
 ```
