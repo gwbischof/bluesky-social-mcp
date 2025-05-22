@@ -21,9 +21,9 @@ dev = [
     "ruff>=0.11.10",
 ]
 
-#[build-system]
-#requires = [ "hatchling", "setuptools", "wheel"]
-#build-backend = "hatchling.build"
+[build-system]
+requires = [ "hatchling", "setuptools", "wheel"]
+build-backend = "hatchling.build"
 
 [project.scripts]
 bluesky-social = "server:main"
