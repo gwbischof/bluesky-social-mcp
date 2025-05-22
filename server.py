@@ -1772,7 +1772,12 @@ def get_bluesky_tools_info() -> Dict:
     return tools_info
 
 
-# Main entry point
-if __name__ == "__main__":
+def main():
+    """Main entry point for the script."""
     # Stdio is prefered for local execution.
     mcp.run(transport="stdio")
+
+
+# Main entry point
+if __name__ == "__main__":
+    main()
