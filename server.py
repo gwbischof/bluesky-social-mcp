@@ -5,8 +5,6 @@ A single-file implementation with all tool logic directly embedded.
 
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-import base64
-from io import BytesIO
 import os
 from typing import Any, AsyncIterator, Dict, List, Optional, Union
 
@@ -22,12 +20,12 @@ LOG_FILE = project_root / "custom-mcp.log"
 
 def login() -> Optional[Client]:
     """Login to Bluesky API and return the client.
-    
+
     Authenticates using environment variables:
     - BLUESKY_IDENTIFIER: The handle (username)
     - BLUESKY_APP_PASSWORD: The app password
     - BLUESKY_SERVICE_URL: The service URL (defaults to "https://bsky.social")
-    
+
     Returns:
         Authenticated Client instance or None if credentials are not available
     """
@@ -37,10 +35,10 @@ def login() -> Optional[Client]:
 
     if not handle or not password:
         return None
- 
+
     # This is helpful for debugging.
     # print(f"LOGIN {handle=} {service_url=}", file=sys.stderr)
-    
+
     # Create and authenticate client
     client = Client(service_url)
     client.login(handle, password)
@@ -49,22 +47,22 @@ def login() -> Optional[Client]:
 
 def get_authenticated_client(ctx: Context) -> Client:
     """Get an authenticated client, creating it lazily if needed.
-    
+
     Args:
         ctx: MCP context
-        
+
     Returns:
         Authenticated Client instance
-        
+
     Raises:
         ValueError: If credentials are not available
     """
     app_context = ctx.request_context.lifespan_context
-    
+
     # If we already have a client, return it
     if app_context.bluesky_client is not None:
         return app_context.bluesky_client
-    
+
     # Try to create a new client by calling login again
     client = login()
     if client is None:
@@ -72,7 +70,7 @@ def get_authenticated_client(ctx: Context) -> Client:
             "Authentication required but credentials not available. "
             "Please set BLUESKY_IDENTIFIER and BLUESKY_APP_PASSWORD environment variables."
         )
-    
+
     # Store it in the context for future use
     app_context.bluesky_client = client
     return client
@@ -81,6 +79,7 @@ def get_authenticated_client(ctx: Context) -> Client:
 @dataclass
 class AppContext:
     bluesky_client: Optional[Client]
+
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
@@ -107,6 +106,7 @@ mcp = FastMCP(
     lifespan=app_lifespan,
     dependencies=["atproto", "mcp"],
 )
+
 
 @mcp.tool()
 def check_auth_status(ctx: Context) -> str:
@@ -140,7 +140,7 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         # If no handle provided, get authenticated user's profile
         if not handle:
             handle = bluesky_client.me.handle
@@ -151,6 +151,7 @@ def get_profile(ctx: Context, handle: Optional[str] = None) -> Dict:
     except Exception as e:
         error_msg = f"Failed to get profile: {str(e)}"
         return {"status": "error", "message": error_msg}
+
 
 # @mcp.tool()
 # def get_follows(
@@ -479,80 +480,62 @@ def unlike_post(
 
 
 @mcp.tool()
-def create_post(
+def send_post(
     ctx: Context,
     text: str,
-    reply_to: Optional[Dict] = None,
-    images: Optional[List[Dict]] = None,
-    quotes: Optional[Dict] = None,
-    links: Optional[List[Dict]] = None,
+    profile_identify: Optional[str] = None,
+    reply_to: Optional[Dict[str, Any]] = None,
+    embed: Optional[Dict[str, Any]] = None,
+    langs: Optional[List[str]] = None,
+    facets: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict:
-    """Create a new post.
+    """Send a post to Bluesky.
 
     Args:
         ctx: MCP context
         text: Text content of the post
-        reply_to: Optional reply information dict with keys uri and cid
-        images: Optional list of image dicts with keys image_data (base64) and alt
-        quotes: Optional quote information dict with keys uri and cid
-        links: Optional list of link information dicts
+        profile_identify: Optional handle or DID. Where to send post. If not provided, sends to current profile
+        reply_to: Optional reply reference with 'root' and 'parent' containing 'uri' and 'cid'
+        embed: Optional embed object (images, external links, records, or video)
+        langs: Optional list of language codes used in the post (defaults to ['en'])
+        facets: Optional list of rich text facets (mentions, links, etc.)
 
     Returns:
-        Status of the post creation
+        Status of the post creation with uri and cid of the created post
     """
-    # TODO: change name to send_post and update to match atproto client.
     try:
         bluesky_client = get_authenticated_client(ctx)
-        # Basic text post
-        post_params = {"text": text}
 
-        # Handle reply
+        # Prepare parameters for send_post
+        kwargs: Dict[str, Any] = {"text": text}
+
+        # Add optional parameters if provided
+        if profile_identify:
+            kwargs["profile_identify"] = profile_identify
+
         if reply_to:
-            reply_data: Dict[str, Dict[str, Any]] = {}
+            kwargs["reply_to"] = reply_to
 
-            if reply_to.get("root_uri") and reply_to.get("root_cid"):
-                root_uri = str(reply_to.get("root_uri", ""))
-                root_cid = str(reply_to.get("root_cid", ""))
-                reply_data["root"] = {"uri": root_uri, "cid": root_cid}
+        if embed:
+            kwargs["embed"] = embed
 
-            if reply_to.get("uri") and reply_to.get("cid"):
-                uri = str(reply_to.get("uri", ""))
-                cid = str(reply_to.get("cid", ""))
-                reply_data["parent"] = {"uri": uri, "cid": cid}
+        if langs:
+            kwargs["langs"] = langs
 
-            # Need to cast to Any to avoid type error
-            post_params["reply"] = reply_data  # type: ignore
+        if facets:
+            kwargs["facets"] = facets
 
-        # Handle images
-        if images:
-            image_uploads: List[Dict[str, Any]] = []
-            for img_data in images:
-                if "image_data" in img_data and "alt" in img_data:
-                    # Assuming image_data is base64 encoded
-                    img_bytes = BytesIO(base64.b64decode(img_data["image_data"]))
-                    upload = bluesky_client.upload_blob(img_bytes.read())
+        # Create the post using the native send_post method
+        post_response = bluesky_client.send_post(**kwargs)
 
-                    image_uploads.append({"image": upload.blob, "alt": img_data["alt"]})
-
-            if image_uploads:
-                post_params["images"] = image_uploads  # type: ignore
-
-        # Handle quote post
-        if quotes and "uri" in quotes and "cid" in quotes:
-            quote_uri = str(quotes["uri"])
-            quote_cid = str(quotes["cid"])
-            post_params["quote"] = {"uri": quote_uri, "cid": quote_cid}  # type: ignore
-
-        # Create the post
-        post_response = bluesky_client.send_post(**post_params)
         return {
             "status": "success",
-            "message": "Post created successfully",
+            "message": "Post sent successfully",
             "post_uri": post_response.uri,
             "post_cid": post_response.cid,
         }
     except Exception as e:
-        error_msg = f"Failed to create post: {str(e)}"
+        error_msg = f"Failed to send post: {str(e)}"
         return {"status": "error", "message": error_msg}
 
 
@@ -1792,10 +1775,19 @@ def get_bluesky_tools_info() -> Dict:
         "categories": {
             "authentication": ["check_environment_variables", "check_auth_status"],
             "profiles": ["get_profile", "get_follows", "get_followers", "follow_user"],
-            "posts": ["get_timeline_posts", "get_feed_posts", "get_list_posts", "get_user_posts", "get_liked_posts", "create_post", "like_post", "get_post_thread"],
+            "posts": [
+                "get_timeline_posts",
+                "get_feed_posts",
+                "get_list_posts",
+                "get_user_posts",
+                "get_liked_posts",
+                "create_post",
+                "like_post",
+                "get_post_thread",
+            ],
             "search": ["search_posts", "search_people", "search_feeds"],
             "utilities": ["convert_url_to_uri", "get_trends", "get_pinned_feeds"],
-        }
+        },
     }
     return tools_info
 

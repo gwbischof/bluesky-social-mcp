@@ -6,7 +6,10 @@ import uuid
 import asyncio
 
 from server import mcp
-from mcp.shared.memory import create_connected_server_and_client_session as client_session
+from mcp.shared.memory import (
+    create_connected_server_and_client_session as client_session,
+)
+
 
 @pytest.mark.asyncio
 async def test_create_and_delete_post():
@@ -18,13 +21,13 @@ async def test_create_and_delete_post():
         test_text = f"Test post from Bluesky MCP test suite - {unique_id}"
         create_params = {"text": test_text}
 
-        # Call the create_post tool
-        result = await client.call_tool("create_post", create_params)
+        # Call the send_post tool
+        result = await client.call_tool("send_post", create_params)
         post_result = json.loads(result.content[0].text)
-        assert post_result.get("status") == "success"
-        
+        assert post_result.get("status") == "success", f"Failed with: {post_result.get('message')}"
+
         post_uri = post_result["post_uri"]
-        post_cid = post_result['post_cid']
+        post_cid = post_result["post_cid"]
 
         # Get likes for the post (should be empty)
         get_likes_params = {"uri": post_uri}
@@ -49,12 +52,12 @@ async def test_create_and_delete_post():
         result = await client.call_tool("get_likes", get_likes_params)
         likes_result = json.loads(result.content[0].text)
         assert likes_result.get("status") == "success"
-        
+
         # Like count should be 1
         likes_data = likes_result.get("likes", {})
         like_count = len(likes_data.get("likes", []))
         assert like_count == 1
-        
+
         # TODO: this part doesn't work yet, I'm not sure how to get the like_uri.
         # Unlike the post
         # like_uri = likes_data['likes'][0]
@@ -68,4 +71,3 @@ async def test_create_and_delete_post():
         result = await client.call_tool("delete_post", delete_params)
         delete_result = json.loads(result.content[0].text)
         assert delete_result.get("status") == "success"
-
