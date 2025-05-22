@@ -26,4 +26,4 @@ requires = [ "hatchling", "setuptools", "wheel"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-bluesky-social = "mcp run server.py"
+bluesky-social = "server:main"
