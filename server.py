@@ -541,68 +541,67 @@ def send_post(
         return {"status": "error", "message": error_msg}
 
 
-# @mcp.tool()
-# def repost_post(
-#     ctx: Context,
-#     uri: str,
-#     cid: str,
-# ) -> Dict:
-#     """Repost another user's post.
+@mcp.tool()
+def repost(
+    ctx: Context,
+    uri: str,
+    cid: str,
+) -> Dict:
+    """Repost another user's post.
 
-#     Args:
-#         ctx: MCP context
-#         uri: URI of the post to repost
-#         cid: CID of the post to repost
+    Args:
+        ctx: MCP context
+        uri: URI of the post to repost
+        cid: CID of the post to repost
 
-#     Returns:
-#         Status of the repost operation
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-#     client = auth_manager.get_client(ctx)
-
-#     try:
-#         repost_response = client.repost(uri, cid)
-#         return {
-#             "status": "success",
-#             "message": "Post reposted successfully",
-#             "repost_uri": repost_response.uri,
-#             "repost_cid": repost_response.cid,
-#         }
-#     except Exception as e:
-#         error_msg = f"Failed to repost: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+    Returns:
+        Status of the repost operation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        repost_response = bluesky_client.repost(uri, cid)
+        return {
+            "status": "success",
+            "message": "Post reposted successfully",
+            "repost_uri": repost_response.uri,
+            "repost_cid": repost_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to repost: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
-# @mcp.tool()
-# def unrepost_post(
-#     ctx: Context,
-#     uri: str,
-#     cid: str,
-# ) -> Dict:
-#     """Remove a repost of another user's post.
+@mcp.tool()
+def unrepost(
+    ctx: Context,
+    repost_uri: str,
+) -> Dict:
+    """Remove a repost of another user's post.
 
-#     Args:
-#         ctx: MCP context
-#         uri: URI of the post to unrepost
-#         cid: CID of the post to unrepost
+    Args:
+        ctx: MCP context
+        repost_uri: URI of the repost to remove
 
-#     Returns:
-#         Status of the unrepost operation
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-#     client = auth_manager.get_client(ctx)
-
-#     try:
-#         client.unrepost(uri, cid)
-#         return {
-#             "status": "success",
-#             "message": "Post unreposted successfully",
-#         }
-#     except Exception as e:
-#         error_msg = f"Failed to unrepost: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+    Returns:
+        Status of the unrepost operation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        success = bluesky_client.unrepost(repost_uri)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Repost removed successfully",
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to remove repost",
+            }
+    except Exception as e:
+        error_msg = f"Failed to unrepost: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
 @mcp.tool()
@@ -640,42 +639,42 @@ def get_likes(
         return {"status": "error", "message": error_msg}
 
 
-# @mcp.tool()
-# def get_reposted_by(
-#     ctx: Context,
-#     uri: str,
-#     cid: Optional[str] = None,
-#     limit: Union[int, str] = 50,
-#     cursor: Optional[str] = None,
-# ) -> Dict:
-#     """Get users who reposted a post.
+@mcp.tool()
+def get_reposted_by(
+    ctx: Context,
+    uri: str,
+    cid: Optional[str] = None,
+    limit: Union[int, str] = 50,
+    cursor: Optional[str] = None,
+) -> Dict:
+    """Get users who reposted a post.
 
-#     Args:
-#         ctx: MCP context
-#         uri: URI of the post to get reposts for
-#         cid: Optional CID of the post (not strictly required)
-#         limit: Maximum number of results to return (1-100)
-#         cursor: Optional pagination cursor
+    Args:
+        ctx: MCP context
+        uri: URI of the post to get reposts for
+        cid: Optional CID of the post (not strictly required)
+        limit: Maximum number of results to return (1-100)
+        cursor: Optional pagination cursor
 
-#     Returns:
-#         List of users who reposted the post
-#     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-#     client = auth_manager.get_client(ctx)
+    Returns:
+        List of users who reposted the post
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        # Convert limit to int if it's a string
+        if isinstance(limit, str):
+            limit = int(limit)
+        limit = max(1, min(100, limit))
+        
+        # Call get_reposted_by with positional arguments as per the client signature
+        reposts_response = bluesky_client.get_reposted_by(uri, cid, cursor, limit)
+        reposts_data = reposts_response.dict()
 
-#     try:
-#         params = {"uri": uri, "limit": max(1, min(100, limit))}
-#         if cursor:
-#             params["cursor"] = cursor
-
-#         reposts_response = client.get_reposted_by(params)
-#         reposts_data = reposts_response.dict()
-
-#         return {"status": "success", "reposts": reposts_data}
-#     except Exception as e:
-#         error_msg = f"Failed to get reposts: {str(e)}"
-#         ctx.error(error_msg)
-#         return {"status": "error", "message": error_msg}
+        return {"status": "success", "reposts": reposts_data}
+    except Exception as e:
+        error_msg = f"Failed to get reposts: {str(e)}"
+        return {"status": "error", "message": error_msg}
 
 
 # @mcp.tool()
@@ -999,12 +998,15 @@ def follow_user(
 #     Returns:
 #         Search results
 #     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-
-#     client = auth_manager.get_client(ctx)
-
 #     try:
-#         params = {"q": query, "limit": max(1, min(100, limit))}
+#         bluesky_client = get_authenticated_client(ctx)
+#         
+#         # Convert limit to int if it's a string
+#         if isinstance(limit, str):
+#             limit = int(limit)
+#         limit = max(1, min(100, limit))
+#         
+#         params = {"q": query, "limit": limit}
 #         if cursor:
 #             params["cursor"] = cursor
 
@@ -1012,12 +1014,11 @@ def follow_user(
 #         if sort.lower() == "latest":
 #             params["sort"] = "recent"
 
-#         search_response = client.app.bsky.feed.search_posts(params)
+#         search_response = bluesky_client.app.bsky.feed.search_posts(params)
 #         search_results = search_response.dict()
 #         return {"status": "success", "search_results": search_results}
 #     except Exception as e:
 #         error_msg = f"Failed to search posts: {str(e)}"
-#         ctx.error(error_msg)
 #         return {"status": "error", "message": error_msg}
 
 
@@ -1039,21 +1040,23 @@ def follow_user(
 #     Returns:
 #         Search results
 #     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-
-#     client = auth_manager.get_client(ctx)
-
 #     try:
-#         params = {"term": query, "limit": max(1, min(100, limit))}
+#         bluesky_client = get_authenticated_client(ctx)
+#         
+#         # Convert limit to int if it's a string
+#         if isinstance(limit, str):
+#             limit = int(limit)
+#         limit = max(1, min(100, limit))
+#         
+#         params = {"term": query, "limit": limit}
 #         if cursor:
 #             params["cursor"] = cursor
 
-#         search_response = client.app.bsky.actor.search_actors(params)
+#         search_response = bluesky_client.app.bsky.actor.search_actors(params)
 #         search_results = search_response.dict()
 #         return {"status": "success", "search_results": search_results}
 #     except Exception as e:
 #         error_msg = f"Failed to search people: {str(e)}"
-#         ctx.error(error_msg)
 #         return {"status": "error", "message": error_msg}
 
 
@@ -1075,21 +1078,23 @@ def follow_user(
 #     Returns:
 #         Search results
 #     """
-#     auth_manager = ctx.request_context.lifespan_context.auth_manager
-
-#     client = auth_manager.get_client(ctx)
-
 #     try:
-#         params = {"query": query, "limit": max(1, min(100, limit))}
+#         bluesky_client = get_authenticated_client(ctx)
+#         
+#         # Convert limit to int if it's a string
+#         if isinstance(limit, str):
+#             limit = int(limit)
+#         limit = max(1, min(100, limit))
+#         
+#         params = {"query": query, "limit": limit}
 #         if cursor:
 #             params["cursor"] = cursor
 
-#         search_response = client.app.bsky.feed.search_feeds(params)
+#         search_response = bluesky_client.app.bsky.feed.search_feeds(params)
 #         search_results = search_response.dict()
 #         return {"status": "success", "search_results": search_results}
 #     except Exception as e:
 #         error_msg = f"Failed to search feeds: {str(e)}"
-#         ctx.error(error_msg)
 #         return {"status": "error", "message": error_msg}
 
 
