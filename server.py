@@ -3,6 +3,7 @@
 A single-file implementation with all tool logic directly embedded.
 """
 
+import base64
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import os
@@ -173,20 +174,20 @@ def get_follows(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         # If no handle provided, get authenticated user's follows
         if not handle:
             handle = bluesky_client.me.handle
-        
+
         # Convert limit to int if it's a string
         if isinstance(limit, str):
             limit = int(limit)
         limit = max(1, min(100, limit))
-        
+
         # Call get_follows directly with positional arguments as per the client signature
         follows_response = bluesky_client.get_follows(handle, cursor, limit)
         follows_data = follows_response.dict()
-        
+
         return {"status": "success", "follows": follows_data}
     except Exception as e:
         error_msg = f"Failed to get follows: {str(e)}"
@@ -213,20 +214,20 @@ def get_followers(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         # If no handle provided, get authenticated user's followers
         if not handle:
             handle = bluesky_client.me.handle
-        
+
         # Convert limit to int if it's a string
         if isinstance(limit, str):
             limit = int(limit)
         limit = max(1, min(100, limit))
-        
+
         # Call get_followers directly with positional arguments as per the client signature
         followers_response = bluesky_client.get_followers(handle, cursor, limit)
         followers_data = followers_response.dict()
-        
+
         return {"status": "success", "followers": followers_data}
     except Exception as e:
         error_msg = f"Failed to get followers: {str(e)}"
@@ -588,7 +589,7 @@ def unrepost(
     try:
         bluesky_client = get_authenticated_client(ctx)
         success = bluesky_client.unrepost(repost_uri)
-        
+
         if success:
             return {
                 "status": "success",
@@ -661,12 +662,12 @@ def get_reposted_by(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         # Convert limit to int if it's a string
         if isinstance(limit, str):
             limit = int(limit)
         limit = max(1, min(100, limit))
-        
+
         # Call get_reposted_by with positional arguments as per the client signature
         reposts_response = bluesky_client.get_reposted_by(uri, cid, cursor, limit)
         reposts_data = reposts_response.dict()
@@ -697,11 +698,11 @@ def get_post(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         post_response = bluesky_client.get_post(post_rkey, profile_identify, cid)
-        
+
         # Convert the response to a dictionary
-        if hasattr(post_response, 'model_dump'):
+        if hasattr(post_response, "model_dump"):
             post_data = post_response.model_dump()
         else:
             post_data = post_response
@@ -728,11 +729,11 @@ def get_posts(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         posts_response = bluesky_client.get_posts(uris)
-        
+
         # Convert the response to a dictionary
-        if hasattr(posts_response, 'model_dump'):
+        if hasattr(posts_response, "model_dump"):
             posts_data = posts_response.model_dump()
         else:
             posts_data = posts_response
@@ -763,11 +764,11 @@ def get_timeline(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         timeline_response = bluesky_client.get_timeline(algorithm, cursor, limit)
-        
+
         # Convert the response to a dictionary
-        if hasattr(timeline_response, 'model_dump'):
+        if hasattr(timeline_response, "model_dump"):
             timeline_data = timeline_response.model_dump()
         else:
             timeline_data = timeline_response
@@ -802,11 +803,13 @@ def get_author_feed(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
-        feed_response = bluesky_client.get_author_feed(actor, cursor, filter, limit, include_pins)
-        
+
+        feed_response = bluesky_client.get_author_feed(
+            actor, cursor, filter, limit, include_pins
+        )
+
         # Convert the response to a dictionary
-        if hasattr(feed_response, 'model_dump'):
+        if hasattr(feed_response, "model_dump"):
             feed_data = feed_response.model_dump()
         else:
             feed_data = feed_response
@@ -837,11 +840,11 @@ def get_post_thread(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         thread_response = bluesky_client.get_post_thread(uri, depth, parent_height)
-        
+
         # Convert the response to a dictionary
-        if hasattr(thread_response, 'model_dump'):
+        if hasattr(thread_response, "model_dump"):
             thread_data = thread_response.model_dump()
         else:
             thread_data = thread_response
@@ -868,11 +871,11 @@ def resolve_handle(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         resolved = bluesky_client.resolve_handle(handle)
-        
+
         # Convert the response to a dictionary
-        if hasattr(resolved, 'model_dump'):
+        if hasattr(resolved, "model_dump"):
             resolved_data = resolved.model_dump()
         else:
             resolved_data = resolved
@@ -903,10 +906,10 @@ def mute_user(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         # The mute method returns a boolean
         success = bluesky_client.mute(actor)
-        
+
         if success:
             return {
                 "status": "success",
@@ -938,10 +941,10 @@ def unmute_user(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         # The unmute method returns a boolean
         success = bluesky_client.unmute(actor)
-        
+
         if success:
             return {
                 "status": "success",
@@ -973,10 +976,10 @@ def unfollow_user(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         # The unfollow method returns a boolean
         success = bluesky_client.unfollow(follow_uri)
-        
+
         if success:
             return {
                 "status": "success",
@@ -989,6 +992,202 @@ def unfollow_user(
             }
     except Exception as e:
         error_msg = f"Failed to unfollow user: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def send_image(
+    ctx: Context,
+    text: str,
+    image_data: str,
+    image_alt: str,
+    profile_identify: Optional[str] = None,
+    reply_to: Optional[Dict[str, Any]] = None,
+    langs: Optional[List[str]] = None,
+    facets: Optional[List[Dict[str, Any]]] = None,
+) -> Dict:
+    """Send a post with a single image.
+
+    Args:
+        ctx: MCP context
+        text: Text content of the post
+        image_data: Base64-encoded image data
+        image_alt: Alternative text description for the image
+        profile_identify: Optional handle or DID for the post author
+        reply_to: Optional reply information dict with keys uri and cid
+        langs: Optional list of language codes
+        facets: Optional list of facets (mentions, links, etc.)
+
+    Returns:
+        Status of the post creation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+
+        # Decode base64 image
+        try:
+            image_bytes = base64.b64decode(image_data)
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to decode image data: {str(e)}",
+            }
+
+        # Send the post with image
+        post_response = bluesky_client.send_image(
+            text=text,
+            image=image_bytes,
+            image_alt=image_alt,
+            profile_identify=profile_identify,
+            reply_to=reply_to,
+            langs=langs,
+            facets=facets,
+        )
+
+        return {
+            "status": "success",
+            "message": "Post with image created successfully",
+            "post_uri": post_response.uri,
+            "post_cid": post_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to create post with image: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def send_images(
+    ctx: Context,
+    text: str,
+    images_data: List[str],
+    image_alts: Optional[List[str]] = None,
+    profile_identify: Optional[str] = None,
+    reply_to: Optional[Dict[str, Any]] = None,
+    langs: Optional[List[str]] = None,
+    facets: Optional[List[Dict[str, Any]]] = None,
+) -> Dict:
+    """Send a post with multiple images (up to 4).
+
+    Args:
+        ctx: MCP context
+        text: Text content of the post
+        images_data: List of base64-encoded image data (max 4)
+        image_alts: Optional list of alt text for each image
+        profile_identify: Optional handle or DID for the post author
+        reply_to: Optional reply information dict with keys uri and cid
+        langs: Optional list of language codes
+        facets: Optional list of facets (mentions, links, etc.)
+
+    Returns:
+        Status of the post creation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+
+        # Verify we have 1-4 images
+        if not images_data:
+            return {
+                "status": "error",
+                "message": "At least one image is required",
+            }
+
+        if len(images_data) > 4:
+            return {
+                "status": "error",
+                "message": "Maximum of 4 images allowed",
+            }
+
+        # Decode all images
+        images_bytes = []
+        for img_data in images_data:
+            try:
+                image_bytes = base64.b64decode(img_data)
+                images_bytes.append(image_bytes)
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": f"Failed to decode image data: {str(e)}",
+                }
+
+        # Send the post with images
+        post_response = bluesky_client.send_images(
+            text=text,
+            images=images_bytes,
+            image_alts=image_alts,
+            profile_identify=profile_identify,
+            reply_to=reply_to,
+            langs=langs,
+            facets=facets,
+        )
+
+        return {
+            "status": "success",
+            "message": "Post with images created successfully",
+            "post_uri": post_response.uri,
+            "post_cid": post_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to create post with images: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def send_video(
+    ctx: Context,
+    text: str,
+    video_data: str,
+    video_alt: Optional[str] = None,
+    profile_identify: Optional[str] = None,
+    reply_to: Optional[Dict[str, Any]] = None,
+    langs: Optional[List[str]] = None,
+    facets: Optional[List[Dict[str, Any]]] = None,
+) -> Dict:
+    """Send a post with a video.
+
+    Args:
+        ctx: MCP context
+        text: Text content of the post
+        video_data: Base64-encoded video data
+        video_alt: Optional alternative text description for the video
+        profile_identify: Optional handle or DID for the post author
+        reply_to: Optional reply information dict with keys uri and cid
+        langs: Optional list of language codes
+        facets: Optional list of facets (mentions, links, etc.)
+
+    Returns:
+        Status of the post creation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+
+        # Decode base64 video
+        try:
+            video_bytes = base64.b64decode(video_data)
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to decode video data: {str(e)}",
+            }
+
+        # Send the post with video
+        post_response = bluesky_client.send_video(
+            text=text,
+            video=video_bytes,
+            video_alt=video_alt,
+            profile_identify=profile_identify,
+            reply_to=reply_to,
+            langs=langs,
+            facets=facets,
+        )
+
+        return {
+            "status": "success",
+            "message": "Post with video created successfully",
+            "post_uri": post_response.uri,
+            "post_cid": post_response.cid,
+        }
+    except Exception as e:
+        error_msg = f"Failed to create post with video: {str(e)}"
         return {"status": "error", "message": error_msg}
 
 
@@ -1274,14 +1473,14 @@ def follow_user(
     """
     try:
         bluesky_client = get_authenticated_client(ctx)
-        
+
         # First resolve the handle to a DID
         resolved = bluesky_client.resolve_handle(handle)
         did = resolved.did
-        
+
         # Now follow the user - follow method expects the DID as subject parameter
         follow_response = bluesky_client.follow(did)
-        
+
         return {
             "status": "success",
             "message": f"Now following {handle}",
@@ -1315,12 +1514,12 @@ def follow_user(
 #     """
 #     try:
 #         bluesky_client = get_authenticated_client(ctx)
-#         
+#
 #         # Convert limit to int if it's a string
 #         if isinstance(limit, str):
 #             limit = int(limit)
 #         limit = max(1, min(100, limit))
-#         
+#
 #         params = {"q": query, "limit": limit}
 #         if cursor:
 #             params["cursor"] = cursor
@@ -1357,12 +1556,12 @@ def follow_user(
 #     """
 #     try:
 #         bluesky_client = get_authenticated_client(ctx)
-#         
+#
 #         # Convert limit to int if it's a string
 #         if isinstance(limit, str):
 #             limit = int(limit)
 #         limit = max(1, min(100, limit))
-#         
+#
 #         params = {"term": query, "limit": limit}
 #         if cursor:
 #             params["cursor"] = cursor
@@ -1395,12 +1594,12 @@ def follow_user(
 #     """
 #     try:
 #         bluesky_client = get_authenticated_client(ctx)
-#         
+#
 #         # Convert limit to int if it's a string
 #         if isinstance(limit, str):
 #             limit = int(limit)
 #         limit = max(1, min(100, limit))
-#         
+#
 #         params = {"query": query, "limit": limit}
 #         if cursor:
 #             params["cursor"] = cursor

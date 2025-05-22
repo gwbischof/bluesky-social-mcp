@@ -24,7 +24,9 @@ async def test_create_and_delete_post():
         # Call the send_post tool
         result = await client.call_tool("send_post", create_params)
         post_result = json.loads(result.content[0].text)
-        assert post_result.get("status") == "success", f"Failed with: {post_result.get('message')}"
+        assert (
+            post_result.get("status") == "success"
+        ), f"Failed with: {post_result.get('message')}"
 
         post_uri = post_result["post_uri"]
         post_cid = post_result["post_cid"]
