@@ -80,7 +80,7 @@ wheels = [
 [[package]]
 name = "bluesky-social-mcp"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "atproto" },
     { name = "mcp", extra = ["cli"] },

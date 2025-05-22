@@ -22,8 +22,11 @@ dev = [
 ]
 
 [build-system]
-requires = [ "hatchling", "setuptools", "wheel"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["server"]
 
 [project.scripts]
 bluesky-social = "server:main"
