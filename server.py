@@ -677,6 +677,286 @@ def get_reposted_by(
         return {"status": "error", "message": error_msg}
 
 
+@mcp.tool()
+def get_post(
+    ctx: Context,
+    post_rkey: str,
+    profile_identify: Optional[str] = None,
+    cid: Optional[str] = None,
+) -> Dict:
+    """Get a specific post.
+
+    Args:
+        ctx: MCP context
+        post_rkey: The record key of the post
+        profile_identify: Handle or DID of the post author
+        cid: Optional CID of the post
+
+    Returns:
+        The requested post
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        post_response = bluesky_client.get_post(post_rkey, profile_identify, cid)
+        
+        # Convert the response to a dictionary
+        if hasattr(post_response, 'model_dump'):
+            post_data = post_response.model_dump()
+        else:
+            post_data = post_response
+
+        return {"status": "success", "post": post_data}
+    except Exception as e:
+        error_msg = f"Failed to get post: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def get_posts(
+    ctx: Context,
+    uris: List[str],
+) -> Dict:
+    """Get multiple posts by their URIs.
+
+    Args:
+        ctx: MCP context
+        uris: List of post URIs to retrieve
+
+    Returns:
+        List of requested posts
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        posts_response = bluesky_client.get_posts(uris)
+        
+        # Convert the response to a dictionary
+        if hasattr(posts_response, 'model_dump'):
+            posts_data = posts_response.model_dump()
+        else:
+            posts_data = posts_response
+
+        return {"status": "success", "posts": posts_data}
+    except Exception as e:
+        error_msg = f"Failed to get posts: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def get_timeline(
+    ctx: Context,
+    algorithm: Optional[str] = None,
+    cursor: Optional[str] = None,
+    limit: Optional[int] = None,
+) -> Dict:
+    """Get posts from your home timeline.
+
+    Args:
+        ctx: MCP context
+        algorithm: Optional algorithm to use for timeline
+        cursor: Optional pagination cursor
+        limit: Maximum number of results to return
+
+    Returns:
+        Timeline feed with posts
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        timeline_response = bluesky_client.get_timeline(algorithm, cursor, limit)
+        
+        # Convert the response to a dictionary
+        if hasattr(timeline_response, 'model_dump'):
+            timeline_data = timeline_response.model_dump()
+        else:
+            timeline_data = timeline_response
+
+        return {"status": "success", "timeline": timeline_data}
+    except Exception as e:
+        error_msg = f"Failed to get timeline: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def get_author_feed(
+    ctx: Context,
+    actor: str,
+    cursor: Optional[str] = None,
+    filter: Optional[str] = None,
+    limit: Optional[int] = None,
+    include_pins: bool = False,
+) -> Dict:
+    """Get posts from a specific user.
+
+    Args:
+        ctx: MCP context
+        actor: Handle or DID of the user
+        cursor: Optional pagination cursor
+        filter: Optional filter for post types
+        limit: Maximum number of results to return
+        include_pins: Whether to include pinned posts
+
+    Returns:
+        Feed with posts from the specified user
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        feed_response = bluesky_client.get_author_feed(actor, cursor, filter, limit, include_pins)
+        
+        # Convert the response to a dictionary
+        if hasattr(feed_response, 'model_dump'):
+            feed_data = feed_response.model_dump()
+        else:
+            feed_data = feed_response
+
+        return {"status": "success", "feed": feed_data}
+    except Exception as e:
+        error_msg = f"Failed to get author feed: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def get_post_thread(
+    ctx: Context,
+    uri: str,
+    depth: Optional[int] = None,
+    parent_height: Optional[int] = None,
+) -> Dict:
+    """Get a full conversation thread.
+
+    Args:
+        ctx: MCP context
+        uri: URI of the post to get thread for
+        depth: How many levels of replies to include
+        parent_height: How many parent posts to include
+
+    Returns:
+        Thread with the post and its replies/parents
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        thread_response = bluesky_client.get_post_thread(uri, depth, parent_height)
+        
+        # Convert the response to a dictionary
+        if hasattr(thread_response, 'model_dump'):
+            thread_data = thread_response.model_dump()
+        else:
+            thread_data = thread_response
+
+        return {"status": "success", "thread": thread_data}
+    except Exception as e:
+        error_msg = f"Failed to get post thread: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def resolve_handle(
+    ctx: Context,
+    handle: str,
+) -> Dict:
+    """Resolve a handle to a DID.
+
+    Args:
+        ctx: MCP context
+        handle: User handle to resolve (e.g. "user.bsky.social")
+
+    Returns:
+        Resolved DID information
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        resolved = bluesky_client.resolve_handle(handle)
+        
+        # Convert the response to a dictionary
+        if hasattr(resolved, 'model_dump'):
+            resolved_data = resolved.model_dump()
+        else:
+            resolved_data = resolved
+
+        return {
+            "status": "success",
+            "handle": handle,
+            "did": resolved_data.get("did"),
+        }
+    except Exception as e:
+        error_msg = f"Failed to resolve handle: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def mute_user(
+    ctx: Context,
+    actor: str,
+) -> Dict:
+    """Mute a user.
+
+    Args:
+        ctx: MCP context
+        actor: Handle or DID of the user to mute
+
+    Returns:
+        Status of the mute operation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        # The mute method returns a boolean
+        success = bluesky_client.mute(actor)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": f"Muted user {actor}",
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to mute user",
+            }
+    except Exception as e:
+        error_msg = f"Failed to mute user: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
+@mcp.tool()
+def unmute_user(
+    ctx: Context,
+    actor: str,
+) -> Dict:
+    """Unmute a previously muted user.
+
+    Args:
+        ctx: MCP context
+        actor: Handle or DID of the user to unmute
+
+    Returns:
+        Status of the unmute operation
+    """
+    try:
+        bluesky_client = get_authenticated_client(ctx)
+        
+        # The unmute method returns a boolean
+        success = bluesky_client.unmute(actor)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": f"Unmuted user {actor}",
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to unmute user",
+            }
+    except Exception as e:
+        error_msg = f"Failed to unmute user: {str(e)}"
+        return {"status": "error", "message": error_msg}
+
+
 # @mcp.tool()
 # def send_image(
 #     ctx: Context,

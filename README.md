@@ -35,14 +35,14 @@ Add to your Claude Desktop config:
 - ✅ `get_followers` - Get users who follow an account (Client method: `get_followers`) 
 - ✅ `follow_user` - Follow a user (Client method: `follow`)
 - ❓ `unfollow_user` - Unfollow a user (Client method: `unfollow`)
-- ❓ `mute_user` - Mute a user (Client method: `mute`)
-- ❓ `unmute_user` - Unmute a user (Client method: `unmute`)
-- ❓ `resolve_handle` - Resolve a handle to DID (Client method: `resolve_handle`)
+- ✅ `mute_user` - Mute a user (Client method: `mute`)
+- ✅ `unmute_user` - Unmute a user (Client method: `unmute`)
+- ✅ `resolve_handle` - Resolve a handle to DID (Client method: `resolve_handle`)
 
 ### Feed Operations
-- ❓ `get_timeline` - Get posts from your home timeline (Client method: `get_timeline`)
-- ❓ `get_author_feed` - Get posts from a specific user (Client method: `get_author_feed`)
-- ❓ `get_post_thread` - Get a full conversation thread (Client method: `get_post_thread`)
+- ✅ `get_timeline` - Get posts from your home timeline (Client method: `get_timeline`)
+- ✅ `get_author_feed` - Get posts from a specific user (Client method: `get_author_feed`)
+- ✅ `get_post_thread` - Get a full conversation thread (Client method: `get_post_thread`)
 
 ### Post Interactions
 - ✅ `like_post` - Like a post (Client method: `like`)
@@ -58,8 +58,8 @@ Add to your Claude Desktop config:
 - ❓ `send_images` - Send a post with multiple images (Client method: `send_images`)
 - ❓ `send_video` - Send a post with a video (Client method: `send_video`)
 - ✅ `delete_post` - Delete a post (Client method: `delete_post`)
-- ❓ `get_post` - Get a specific post (Client method: `get_post`)
-- ❓ `get_posts` - Get multiple posts (Client method: `get_posts`)
+- ✅ `get_post` - Get a specific post (Client method: `get_post`)
+- ✅ `get_posts` - Get multiple posts (Client method: `get_posts`)
 
 ### Run from local clone of repo.
 ```bash
