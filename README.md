@@ -8,13 +8,14 @@ An MCP server for interacting with the Bluesky social network via the [atproto](
 
 Get your Bluesky app password at: https://bsky.app/settings/app-passwords
 
-Add to your Claude Desktop config:
+Add the following to your MCP config file (Note that the version is pinned):
+
 ```json
 {
   "mcpServers": {
     "bluesky-social": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/gwbischof/bluesky-social-mcp", "bluesky-social-mcp"],
+      "args": ["--from", "git+https://github.com/gwbischof/bluesky-social-mcp@v0.1", "bluesky-social-mcp"],
       "env": {
         "BLUESKY_IDENTIFIER": "your-handle.bsky.social",
         "BLUESKY_APP_PASSWORD": "your-app-password"
@@ -23,7 +24,8 @@ Add to your Claude Desktop config:
   }
 }
 ```
-
+- For security reasons, I think its best to keep it pinned and manually change your config to update the version.
+  
 ## Tool Status
 All tools have been implemented and tested ✅
 
