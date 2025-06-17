@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/gwbischof-bluesky-social-mcp-badge.png)](https://mseep.ai/app/gwbischof-bluesky-social-mcp)
+
 # Bluesky Social MCP
 
 An MCP server for interacting with the Bluesky social network via the [atproto](https://github.com/MarshalX/atproto) client.
